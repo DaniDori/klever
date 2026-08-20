@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Каталог — Клевер</title>
+<meta name="description" content="Каталог одежды ручной работы: платья, блузы, вязаное, шарфы, сумки, детское.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/tokens.css">
+<link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body>
+
+<header id="site-header"></header>
+
+<main>
+  <section class="page-head">
+    <div class="container">
+      <nav class="crumbs"><a href="index.html">Главная</a><span>/</span><span id="crumb">Каталог</span></nav>
+      <span class="eyebrow">Каталог</span>
+      <h1 id="cat-title">Все вещи</h1>
+      <p id="cat-desc">Каждая вещь шьётся руками. Если размера нет в списке — сошьём по вашим меркам.</p>
+    </div>
+  </section>
+
+  <section class="section--tight">
+    <div class="container">
+      <div class="catalog-layout">
+
+        <aside class="filters">
+          <div class="filter-group">
+            <div class="filter-group__title">Кому</div>
+            <div class="filter-list filter-list--row" id="f-gender"></div>
+          </div>
+
+          <div class="filter-group">
+            <div class="filter-group__title">Категория</div>
+            <div class="filter-list" id="f-cats"></div>
+          </div>
+
+          <div class="filter-group">
+            <div class="filter-group__title">Цена до <span id="price-label"></span></div>
+            <input type="range" class="range" id="f-price" min="0" max="20000" step="500">
+          </div>
+
+          <div class="filter-group">
+            <div class="filter-group__title">Размер</div>
+            <div class="filter-list filter-list--row" id="f-sizes"></div>
+          </div>
+
+          <div class="filter-group">
+            <div class="filter-group__title">Наличие</div>
+            <label class="filter-row" style="cursor:pointer">
+              <span class="filter-row__label">
+                <input type="checkbox" id="f-stock" style="accent-color:var(--clover)">
+                Только в наличии
+              </span>
+            </label>
+          </div>
+
+          <button class="btn btn--quiet btn--sm" id="f-reset" style="align-self:flex-start">Сбросить фильтры</button>
+        </aside>
+
+        <div>
+          <div class="catalog-bar">
+            <span class="catalog-bar__count" id="count"></span>
+            <select class="select" id="sort">
+              <option value="default">По умолчанию</option>
+              <option value="price-asc">Сначала дешевле</option>
+              <option value="price-desc">Сначала дороже</option>
+              <option value="new">Сначала новые</option>
+            </select>
+          </div>
+          <div class="grid-products" id="grid"></div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer id="site-footer"></footer>
+
+<script src="/api/content.js"></script>
+<script src="assets/js/store.js"></script>
+<script src="assets/js/cart.js"></script>
+<script src="assets/js/mail.js"></script>
+<script src="assets/js/ui.js"></script>
+<script src="assets/js/catalog.js"></script>
+</body>
+</html>

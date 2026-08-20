@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Товар — Клевер</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/tokens.css">
+<link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body>
+
+<header id="site-header"></header>
+
+<main>
+  <section class="page-head">
+    <div class="container">
+      <nav class="crumbs" id="crumbs"></nav>
+    </div>
+  </section>
+
+  <section class="section--tight">
+    <div class="container">
+      <div class="product" id="product"></div>
+    </div>
+  </section>
+
+  <section class="section" id="related-section" hidden>
+    <div class="container">
+      <div class="section-head reveal">
+        <div>
+          <span class="eyebrow">Из той же корзины</span>
+          <h2>Похожие вещи</h2>
+        </div>
+        <a class="link-arrow" href="catalog.html">Весь каталог →</a>
+      </div>
+      <div class="grid-products" id="related"></div>
+    </div>
+  </section>
+</main>
+
+<footer id="site-footer"></footer>
+
+<script src="/api/content.js"></script>
+<script src="assets/js/store.js"></script>
+<script src="assets/js/cart.js"></script>
+<script src="assets/js/mail.js"></script>
+<script src="assets/js/ui.js"></script>
+<script src="assets/js/product.js"></script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "name": "klever",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Клевер — магазин одежды ручной работы: витрина, админ-панель и сервер на SQLite",
+  "scripts": {
+    "start": "node server/server.js"
+  },
+  "engines": {
+    "node": ">=22.5"
+  }
+}

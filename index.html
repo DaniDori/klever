@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Клевер — мастерская одежды ручной работы</title>
+<meta name="description" content="Клевер — одежда ручной работы из льна, хлопка и мериноса. Пошив по меркам, натуральные ткани, небольшая мастерская.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/tokens.css">
+<link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body>
+
+<header id="site-header"></header>
+
+<main>
+
+  <!-- Плакаты -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero__slides" id="hero"></div>
+      <div class="hero__dots" id="hero-dots"></div>
+    </div>
+  </section>
+
+  <!-- Кнопки перехода в каталог -->
+  <section class="section--tight">
+    <div class="container">
+      <div class="entry-buttons reveal" id="entries"></div>
+    </div>
+  </section>
+
+  <!-- Ассортимент -->
+  <section class="section">
+    <div class="container">
+      <div class="section-head reveal">
+        <div>
+          <span class="eyebrow">Ассортимент</span>
+          <h2>Что есть сейчас</h2>
+        </div>
+        <a class="link-arrow" href="catalog.html">Весь каталог →</a>
+      </div>
+      <div class="grid-products" id="assortment"></div>
+      <div style="text-align:center;margin-top:48px">
+        <a class="btn btn--ghost" href="catalog.html">Смотреть все вещи</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Пошив по меркам -->
+  <section class="section">
+    <div class="container container--narrow reveal" style="text-align:center">
+      <span class="eyebrow" style="justify-content:center">Пошив по меркам</span>
+      <h2>Не нашли свой размер?</h2>
+      <p class="lead">Снимем мерки онлайн, подберём ткань и сошьём вещь, которая сядет как надо. Это занимает 7–14 дней.</p>
+      <button class="btn btn--primary" data-order="">Оставить заявку</button>
+    </div>
+  </section>
+
+</main>
+
+<footer id="site-footer"></footer>
+
+<script src="/api/content.js"></script>
+<script src="assets/js/store.js"></script>
+<script src="assets/js/cart.js"></script>
+<script src="assets/js/mail.js"></script>
+<script src="assets/js/ui.js"></script>
+<script src="assets/js/home.js"></script>
+</body>
+</html>

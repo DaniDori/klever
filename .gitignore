@@ -1,0 +1,16 @@
+# База и всё, что вокруг неё, — своё на каждом сервере
+server/*.db
+server/*.db-wal
+server/*.db-shm
+server/backups/
+
+# Фотографии, загруженные через админку
+uploads/*
+!uploads/.gitkeep
+
+node_modules/
+.DS_Store
+Thumbs.db
+
+# Личные настройки Claude Code — у каждого свои
+.claude/settings.local.json

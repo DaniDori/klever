@@ -1,0 +1,10 @@
+# В репозитории держим LF, в рабочей копии на Windows Git сам поставит CRLF.
+# Иначе одна и та же строка выглядит изменённой при переходе между машинами.
+* text=auto eol=lf
+
+# Двоичное не трогать
+*.jpg  binary
+*.png  binary
+*.gif  binary
+*.webp binary
+*.db   binary

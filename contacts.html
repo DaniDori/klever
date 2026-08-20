@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Контакты — Клевер</title>
+<meta name="description" content="Связаться с мастерской «Клевер»: телефон, почта, мессенджеры, адрес.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/tokens.css">
+<link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body>
+
+<header id="site-header"></header>
+
+<main>
+  <section class="page-head">
+    <div class="container">
+      <nav class="crumbs"><a href="index.html">Главная</a><span>/</span><span>Контакты</span></nav>
+      <span class="eyebrow">Контакты</span>
+      <h1 id="c-title">Свяжитесь с нами</h1>
+      <p id="c-sub"></p>
+    </div>
+  </section>
+
+  <section class="section--tight">
+    <div class="container">
+      <div class="about-strip" style="align-items:start">
+        <div class="reveal">
+          <dl class="specs" id="c-list" style="margin-top:0"></dl>
+          <div class="contact-buttons" id="c-buttons"></div>
+          <div class="prose" id="c-body" style="font-size:1rem;margin-top:32px"></div>
+        </div>
+        <div class="reveal">
+          <div style="padding:clamp(24px,4vw,40px);border:1px solid var(--line-soft);border-radius:var(--r-lg);background:var(--white);box-shadow:var(--shadow-sm)">
+            <span class="eyebrow">Заявка</span>
+            <h3>Оставьте сообщение</h3>
+            <p class="muted" style="font-size:0.9rem">Напишите, что вам нужно — платье по меркам, подарок или просто вопрос по уходу.</p>
+            <form id="contact-form" novalidate>
+              <div class="field"><label class="field__label" for="c-name">Как вас зовут</label>
+                <input class="input" id="c-name" name="name" placeholder="Анна"></div>
+              <div class="field"><label class="field__label" for="c-contact">Телефон, почта или @телеграм</label>
+                <input class="input" id="c-contact" name="contact" placeholder="+7 900 000-00-00"></div>
+              <div class="field"><label class="field__label" for="c-comment">Сообщение</label>
+                <textarea class="textarea" id="c-comment" name="comment" placeholder="Расскажите, что хотелось бы"></textarea></div>
+              <button class="btn btn--primary btn--wide" type="submit">Отправить</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer id="site-footer"></footer>
+
+<script src="/api/content.js"></script>
+<script src="assets/js/store.js"></script>
+<script src="assets/js/cart.js"></script>
+<script src="assets/js/mail.js"></script>
+<script src="assets/js/ui.js"></script>
+<script src="assets/js/pages.js"></script>
+</body>
+</html>
