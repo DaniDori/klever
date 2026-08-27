@@ -11,19 +11,33 @@ VPS с Ubuntu 24.04 (подойдёт самый дешёвый: 1 ядро, 1 �
 
 ## 1. Node.js
 
-Подключитесь к серверу по SSH и поставьте Node 22 LTS:
+Сначала посмотрите, что предлагает сам дистрибутив:
+
+```bash
+apt-cache policy nodejs | head -3
+```
+
+На Ubuntu 26.04 в штатном репозитории лежит Node 22.22 — этого достаточно,
+и ставится он одной командой:
+
+```bash
+sudo apt update && sudo apt install -y nodejs
+```
+
+Если версия в репозитории старее 22.5 (например, на Ubuntu 24.04 там Node 18),
+подключите репозиторий NodeSource:
 
 ```bash
 curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash - && sudo apt install -y nodejs
 ```
 
-Проверьте версию — должна быть 22.5 или выше:
+Проверьте, что встроенный SQLite на месте — от него зависит вся база:
 
 ```bash
-node -v
+node --no-warnings -e "require('node:sqlite'); console.log('node:sqlite работает')"
 ```
 
-Если версия старее, сайт откажется запускаться и честно скажет почему.
+Если версия старее 22.5, сайт откажется запускаться и честно скажет почему.
 
 ## 2. Файлы сайта
 
@@ -144,7 +158,80 @@ sudo certbot --nginx -d klever.ru -d www.klever.ru
 Certbot сам перепишет конфиг под HTTPS и настроит продление. Откройте
 `https://klever.ru/` — сайт на месте.
 
-## 6. Что сделать сразу после
+## 6. Защита сервера
+
+Три меры, которые стоит включить до того, как на сервере появятся заявки
+покупателей. Вход по паролю при этом сохраняется — просто подбирать его
+становится бессмысленно.
+
+**Задержки и штрафы в sshd.** Создайте `/etc/ssh/sshd_config.d/70-klever.conf`:
+
+```
+MaxAuthTries 3
+LoginGraceTime 30
+PerSourcePenalties authfail:10s noauth:5s grace-exceeded:20s crash:120s refuseconnection:30s min:30s max:30m
+```
+
+`PerSourcePenalties` появился в OpenSSH 9.8: после неудачной попытки адрес
+получает отказ в соединении на растущий срок, до получаса. Проверьте конфиг
+и примените без разрыва текущей сессии:
+
+```bash
+sudo sshd -t && sudo systemctl reload ssh
+```
+
+**Пауза перед ответом «неверный пароль».** Без неё сервер отвечает мгновенно,
+и перебор идёт со скоростью сети. Добавьте в `/etc/pam.d/sshd` перед строкой
+`@include common-auth`:
+
+```
+auth optional pam_faildelay.so delay=4000000
+```
+
+**Бан за повторные попытки.** Создайте `/etc/fail2ban/jail.d/klever.local`:
+
+```ini
+[DEFAULT]
+ignoreip = 127.0.0.1/8 ::1
+bantime  = 15m
+findtime = 10m
+maxretry = 4
+bantime.increment = true
+bantime.factor    = 2
+bantime.maxtime   = 1d
+
+[sshd]
+enabled  = true
+mode     = aggressive
+maxretry = 4
+```
+
+```bash
+sudo fail2ban-client -t && sudo systemctl restart fail2ban
+```
+
+Первый бан — 15 минут, каждый следующий вдвое дольше, потолок сутки.
+Если забанили себя (четыре опечатки подряд), снять бан можно с консоли
+хостера: `sudo fail2ban-client set sshd unbanip ВАШ_IP`.
+
+**Firewall.** Порядок важен: сначала разрешить SSH, только потом включать.
+
+```bash
+sudo ufw default deny incoming && sudo ufw default allow outgoing
+sudo ufw allow 22/tcp && sudo ufw allow 80/tcp && sudo ufw allow 443/tcp
+sudo ufw --force enable
+```
+
+Порт 80 нужен не только для сайта — без него certbot не выпустит сертификат.
+
+**Автообновления безопасности.** Пакет `unattended-upgrades` обычно уже стоит,
+осталось его включить:
+
+```bash
+sudo systemctl enable --now unattended-upgrades
+```
+
+## 7. Что сделать сразу после
 
 1. Зайдите в `https://klever.ru/admin.html`, смените пароль в «Настройках».
 2. В «Данных» нажмите «Выгрузить файл» и сохраните его у себя — это точка,
@@ -215,6 +302,8 @@ sudo journalctl -u klever -n 50 --no-pager
 | Не входит в панель, «Слишком много попыток» | сработала защита от перебора, подождите 15 минут |
 | Фото не загружается, «Слишком большой запрос» | поднимите `client_max_body_size` в nginx |
 | Вход слетает при каждом переходе | нет `SECURE_COOKIES=1` при HTTPS или не передаётся `X-Forwarded-Proto` |
+| SSH не пускает даже с верным паролем | fail2ban забанил адрес — `fail2ban-client status sshd` |
+| Сайт открывается локально, но не снаружи | порт закрыт в ufw — `ufw status` |
 
 ---
 
