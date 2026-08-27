@@ -168,17 +168,25 @@ p  { margin: 0 0 var(--sp-4); }
 .logo { display: inline-flex; align-items: center; gap: var(--sp-3); }
 .logo__mark { width: 34px; height: 34px; flex: none; color: var(--clover); }
 .logo__text { display: flex; flex-direction: column; line-height: 1.1; }
+/* Название длинное — «Авторская одежда Любови Меньшениной». Кегль тянется
+   от узкого экрана к широкому, чтобы на телефоне уложиться в две строки
+   и не раздуть шапку: мобильное меню ниже рассчитано на её высоту. */
+.logo { min-width: 0; }
+.logo__text { min-width: 0; }
 .logo__name {
   font-family: var(--font-display);
-  font-size: 1.5rem;
-  letter-spacing: 0.06em;
+  font-size: clamp(1.05rem, 1.4vw + 0.62rem, 1.5rem);
+  letter-spacing: 0.04em;
+  line-height: 1.15;
   color: var(--clover-deep);
+  text-wrap: balance;
 }
 .logo__tag {
   font-size: 0.62rem;
   letter-spacing: 0.24em;
   text-transform: uppercase;
   color: var(--sage);
+  margin-top: 2px;
 }
 
 .nav { display: flex; align-items: center; gap: clamp(16px, 2.4vw, 34px); }
@@ -229,6 +237,12 @@ p  { margin: 0 0 var(--sp-4); }
 .burger.is-open span::after  { transform: translateY(-5px) rotate(-45deg); }
 
 @media (max-width: 880px) {
+  /* Знак меньше, интервалы плотнее — длинному названию нужна ширина */
+  .logo { gap: var(--sp-2); }
+  .logo__mark { width: 28px; height: 28px; }
+  .logo__name { letter-spacing: 0.01em; }
+  .logo__tag { font-size: 0.54rem; letter-spacing: 0.14em; }
+
   .burger { display: inline-flex; }
   .nav {
     position: fixed;

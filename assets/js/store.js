@@ -20,7 +20,7 @@ window.Store = (function () {
      и честное сообщение вместо белого экрана с ошибкой в консоли. */
   var EMPTY = {
     version: 0,
-    settings: { siteName: 'Клевер', tagline: 'Мастерская одежды', slogan: '' },
+    settings: { siteName: 'Авторская одежда Любови Меньшениной', tagline: 'Мастерская Клевер', slogan: '' },
     categories: [], products: [], banners: [],
     pages: { about: {}, delivery: {}, care: {}, contacts: {} },
     requests: []
