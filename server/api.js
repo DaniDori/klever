@@ -155,8 +155,11 @@ function postRequest(req, res) {
       source: trim(body.source, 40) || 'site'
     });
 
-    console.log('Новая заявка: ' + saved.name + ' · ' + saved.contact +
-      (saved.total ? ' · ' + saved.total + ' ₽' : ''));
+    /* В журнале — только факт заявки. Имя и контакт живут в базе, где их
+       можно удалить по просьбе человека; в журнале они осели бы навсегда. */
+    console.log('Новая заявка ' + saved.id +
+      (saved.items.length ? ', позиций: ' + saved.items.length : '') +
+      (saved.total ? ', сумма: ' + saved.total + ' ₽' : ''));
     return ok(res, { id: saved.id });
   });
 }

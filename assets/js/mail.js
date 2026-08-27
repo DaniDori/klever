@@ -137,12 +137,15 @@ window.Mail = (function () {
     return Promise.resolve({ ok: false, skipped: true, message: 'Неизвестный сервис отправки' });
   }
 
-  /* Тот же текст, но для мессенджера — запасной путь, если письмо не ушло */
+  /* Тот же текст, но для мессенджера — запасной путь, если письмо не ушло.
+     WhatsApp и Telegram умеют принимать текст прямо в ссылке, ВКонтакте нет:
+     там открывается пустой диалог, поэтому текст даём скопировать. */
   function messengerLink(order) {
     var s = Store.settings();
     var text = encodeURIComponent(buildText(order));
-    if (s.telegram) return { label: 'Отправить в Telegram', href: 'https://t.me/' + s.telegram };
     if (s.whatsapp) return { label: 'Отправить в WhatsApp', href: 'https://wa.me/' + s.whatsapp + '?text=' + text };
+    if (s.telegram) return { label: 'Отправить в Telegram', href: 'https://t.me/' + s.telegram };
+    if (s.vk) return { label: 'Написать во ВКонтакте', href: UI.vkMessageUrl(s.vk), needsCopy: true };
     return null;
   }
 

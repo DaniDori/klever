@@ -105,6 +105,25 @@ window.UI = (function () {
       .replace(/"/g, '&quot;');
   }
 
+  /* ВКонтакте в настройках можно записать как угодно — «club163698701»,
+     «vk.com/club…» или полной ссылкой. Приводим к одному виду, чтобы
+     не приходилось помнить правильный формат. */
+  function vkName(value) {
+    return String(value || '').trim()
+      .replace(/^https?:\/\//i, '')
+      .replace(/^(www\.)?vk\.(com|ru)\//i, '')
+      .replace(/\/+$/, '');
+  }
+  function vkUrl(value) {
+    var name = vkName(value);
+    return name ? 'https://vk.com/' + name : '';
+  }
+  /* Диалог с сообществом: у ВК свой адрес для сообщений */
+  function vkMessageUrl(value) {
+    var name = vkName(value);
+    return name ? 'https://vk.me/' + name : '';
+  }
+
   /* Мини-разметка для статей и страниц: ## заголовки, - списки, > цитата, **жирный** */
   function markup(text) {
     var lines = String(text || '').split(/\r?\n/);
@@ -134,6 +153,36 @@ window.UI = (function () {
     });
     flushPara(); flushList();
     return out.join('\n');
+  }
+
+  /* ---------- Согласие на обработку данных ----------
+     Галочка не отмечена заранее: преотмеченная не считается согласием,
+     потому что человек ничего не выбирал. */
+
+  function consentField(id) {
+    return '<label class="consent" for="' + id + '">' +
+      '<input type="checkbox" id="' + id + '">' +
+      '<span>Согласен на обработку персональных данных и с ' +
+      '<a href="page.html?p=privacy" target="_blank" rel="noopener">политикой конфиденциальности</a></span>' +
+      '</label>';
+  }
+
+  /* Возвращает true, если галочка стоит. Иначе подсвечивает её и объясняет. */
+  function consentGiven(root, id) {
+    var box = (root || document).querySelector('#' + id);
+    if (!box) return true;
+    var wrap = box.closest('.consent');
+    var old = wrap.parentNode.querySelector('.consent__error');
+    if (old) old.remove();
+    wrap.classList.remove('consent--error');
+    if (box.checked) return true;
+
+    wrap.classList.add('consent--error');
+    var d = document.createElement('div');
+    d.className = 'field__error consent__error';
+    d.textContent = 'Без согласия мы не можем принять заявку';
+    wrap.parentNode.insertBefore(d, wrap.nextSibling);
+    return false;
   }
 
   /* ---------- Шапка и подвал ---------- */
@@ -222,17 +271,22 @@ window.UI = (function () {
             '<li><a href="page.html?p=delivery">Доставка и оплата</a></li>' +
             '<li><a href="page.html?p=care">Уход за изделиями</a></li>' +
             '<li><a href="page.html?p=about">О мастерской</a></li>' +
+            '<li><a href="page.html?p=terms">Условия продажи и возврата</a></li>' +
           '</ul></div>' +
           '<div class="footer-col"><h4>Связь</h4><ul>' +
             '<li><a href="tel:' + esc(String(s.phone).replace(/[^\d+]/g, '')) + '">' + esc(s.phone) + '</a></li>' +
             '<li><a href="mailto:' + esc(s.email) + '">' + esc(s.email) + '</a></li>' +
+            (s.vk ? '<li><a href="' + esc(vkUrl(s.vk)) + '" target="_blank" rel="noopener">ВКонтакте</a></li>' : '') +
             (s.telegram ? '<li><a href="https://t.me/' + esc(s.telegram) + '" target="_blank" rel="noopener">Telegram</a></li>' : '') +
             (s.instagram ? '<li><a href="https://instagram.com/' + esc(s.instagram) + '" target="_blank" rel="noopener">Instagram</a></li>' : '') +
           '</ul></div>' +
         '</div>' +
         '<div class="footer-bottom">' +
           '<span>© ' + new Date().getFullYear() + ' ' + esc(s.siteName) + ' — сшито руками</span>' +
+          /* Реквизиты продавца покупатель должен видеть с любой страницы */
+          (s.legal ? '<span>' + esc(s.legal) + '</span>' : '') +
           '<span>' + esc(s.address) + '</span>' +
+          '<a href="page.html?p=privacy">Политика конфиденциальности</a>' +
         '</div>' +
       '</div>';
   }
@@ -646,6 +700,7 @@ window.UI = (function () {
           '<textarea class="textarea" id="ch-comment" name="comment" placeholder="Мерки, город, пожелания по цвету"></textarea></div>' +
       '</form>',
       '<div class="cart-total"><span>Итого</span><strong id="ch-total">' + price(total) + '</strong></div>' +
+      consentField('ch-consent') +
       '<button class="btn btn--primary btn--wide" id="ch-submit">Отправить заказ</button>' +
       (fromCart ? '<button class="btn btn--quiet btn--wide" data-back-to-cart style="margin-top:8px">← Вернуться к корзине</button>' : ''));
 
@@ -691,6 +746,7 @@ window.UI = (function () {
           field.appendChild(d);
         }
       });
+      if (!consentGiven(panel, 'ch-consent')) ok = false;
       if (!ok) return;
 
       /* Что осталось после вычёркиваний */
@@ -750,6 +806,10 @@ window.UI = (function () {
     var inBase = !!(saved && saved.ok);
     var messenger = (link ? '<a class="btn btn--primary" target="_blank" rel="noopener" href="' +
         esc(link.href) + '">' + esc(link.label) + '</a>' : '') +
+      /* ВКонтакте открывает пустой диалог — без этой кнопки покупателю
+         пришлось бы перепечатывать состав заказа руками. */
+      (link && link.needsCopy
+        ? '<button class="btn btn--ghost" data-copy-order>Скопировать текст заказа</button>' : '') +
       (s.phone ? '<div class="send-note">Или позвоните: ' + esc(s.phone) + '</div>' : '');
 
     var body;
@@ -787,6 +847,32 @@ window.UI = (function () {
     var title = inBase || res.ok ? 'Спасибо' : 'Не получилось';
     drawerRef.panel.innerHTML = drawerShell(title, body,
       '<button class="btn btn--ghost btn--wide" data-close>Закрыть</button>');
+
+    var copyBtn = drawerRef.panel.querySelector('[data-copy-order]');
+    if (copyBtn) copyBtn.addEventListener('click', function () {
+      var text = Mail.buildText(order);
+      var done = function () {
+        copyBtn.textContent = 'Текст скопирован';
+        copyBtn.disabled = true;
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text, done); });
+      } else {
+        fallbackCopy(text, done);
+      }
+    });
+  }
+
+  /* Запасной способ для браузеров без буфера обмена или без HTTPS */
+  function fallbackCopy(text, done) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;top:-1000px;opacity:0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); done(); }
+    catch (e) { toast('Не удалось скопировать — выделите текст вручную', 'warn'); }
+    document.body.removeChild(ta);
   }
 
   /* ---------- Тайный вход в админку ----------
@@ -864,8 +950,10 @@ window.UI = (function () {
         sizeField +
         '<div class="field"><label class="field__label" for="o-comment">Комментарий</label>' +
           '<textarea class="textarea" id="o-comment" name="comment" placeholder="Мерки, пожелания по цвету, срок"></textarea></div>' +
+        consentField('o-consent') +
         '<button class="btn btn--primary btn--wide" type="submit">Отправить заявку</button>' +
         '<div class="contact-buttons">' +
+          (s.vk ? '<a class="btn btn--ghost btn--sm" target="_blank" rel="noopener" href="' + esc(vkMessageUrl(s.vk)) + '">Написать во ВКонтакте</a>' : '') +
           (s.telegram ? '<a class="btn btn--ghost btn--sm" target="_blank" rel="noopener" href="https://t.me/' + esc(s.telegram) + '">Написать в Telegram</a>' : '') +
           (s.whatsapp ? '<a class="btn btn--ghost btn--sm" target="_blank" rel="noopener" href="https://wa.me/' + esc(s.whatsapp) + '">WhatsApp</a>' : '') +
         '</div>' +
@@ -893,6 +981,7 @@ window.UI = (function () {
           field.appendChild(d);
         }
       });
+      if (!consentGiven(m.el, 'o-consent')) ok = false;
       if (!ok) return;
 
       var submit = form.querySelector('button[type="submit"]');
@@ -1027,6 +1116,8 @@ window.UI = (function () {
     openCart: openCart, addToCart: addToCart, updateCartBadge: updateCartBadge,
     swipe: swipe, swipeGuard: swipeGuard, bindPhotoSwipe: bindPhotoSwipe, bindCardPhotos: bindCardPhotos,
     placeholder: placeholder, imageOf: imageOf, cloverSVG: cloverSVG,
+    consentField: consentField, consentGiven: consentGiven,
+    vkUrl: vkUrl, vkMessageUrl: vkMessageUrl,
     price: price, dateRu: dateRu, plural: plural, esc: esc, markup: markup,
     productCard: productCard,
     renderFooter: renderFooter

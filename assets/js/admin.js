@@ -738,7 +738,9 @@
     ['about', 'О мастерской'],
     ['delivery', 'Доставка и оплата'],
     ['care', 'Уход за изделиями'],
-    ['contacts', 'Контакты']
+    ['contacts', 'Контакты'],
+    ['terms', 'Условия продажи и возврата'],
+    ['privacy', 'Политика конфиденциальности']
   ];
 
   function sectionPages(main) {
@@ -861,11 +863,14 @@
         field('slogan', 'Слоган в подвале', { value: s.slogan, full: true }) +
         field('phone', 'Телефон', { value: s.phone }) +
         field('email', 'Почта', { value: s.email }) +
-        field('telegram', 'Telegram', { value: s.telegram, hint: 'Без @, например klever_shop' }) +
-        field('whatsapp', 'WhatsApp', { value: s.whatsapp, hint: 'Только цифры: 79001234567' }) +
-        field('instagram', 'Instagram', { value: s.instagram }) +
+        field('vk', 'ВКонтакте', { value: s.vk, hint: 'Ссылка или имя: vk.com/club163698701 или club163698701' }) +
+        field('telegram', 'Telegram', { value: s.telegram, hint: 'Без @, например klever_shop. Пусто — кнопки не будет' }) +
+        field('whatsapp', 'WhatsApp', { value: s.whatsapp, hint: 'Только цифры: 79109759336. Пусто — кнопки не будет' }) +
+        field('instagram', 'Instagram', { value: s.instagram, hint: 'Пусто — кнопки не будет' }) +
         field('workHours', 'Часы работы', { value: s.workHours }) +
         field('address', 'Адрес', { value: s.address, full: true }) +
+        field('legal', 'Реквизиты продавца', { value: s.legal, full: true,
+          hint: 'Показываются в подвале на каждой странице: ИП, ОГРНИП, ИНН' }) +
       '</div><div class="editor-actions">' +
         '<button class="btn btn--primary" data-save>Сохранить</button>' +
       '</div></div></div>' +
@@ -922,8 +927,8 @@
     main.addEventListener('click', function (e) {
       var save = e.target.closest('[data-save]');
       if (save) {
-        commit(save, Store.saveSettings(collect(['siteName','tagline','slogan','phone','email','telegram',
-          'whatsapp','instagram','workHours','address'])), 'Настройки сохранены');
+        commit(save, Store.saveSettings(collect(['siteName','tagline','slogan','phone','email','vk','telegram',
+          'whatsapp','instagram','workHours','address','legal'])), 'Настройки сохранены');
         return;
       }
 

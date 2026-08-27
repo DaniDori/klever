@@ -1129,3 +1129,30 @@ img[src^="data:image/svg"] { object-fit: cover !important; }
   line-height: 1.5;
   text-align: center;
 }
+
+/* ---------- Согласие на обработку данных ---------- */
+
+/* Строка под формой: галочка и мелкий текст со ссылкой на политику.
+   Кегль мелкий, но не микроскопический — иначе согласие выглядит спрятанным. */
+.consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 4px 0 18px;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.consent input {
+  flex: none;
+  width: 16px; height: 16px;
+  margin-top: 1px;
+  accent-color: var(--clover);
+  cursor: pointer;
+}
+.consent a { color: var(--clover-deep); text-decoration: underline; text-underline-offset: 2px; }
+.consent a:hover { color: var(--clover); }
+.consent--error { color: #A2604D; }
+.consent--error input { outline: 2px solid #C98A76; outline-offset: 2px; }
+.consent__error { margin: -12px 0 16px; }

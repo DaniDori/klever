@@ -18,7 +18,7 @@
         '<h2>Страница не найдена</h2><a class="btn btn--ghost" href="index.html">На главную</a>' +
         '</div></div></section>';
     } else {
-      document.title = pg.title + ' — Клевер';
+      document.title = pg.title + ' — ' + Store.settings().siteName;
       var media = key === 'about'
         ? '<section class="section--tight"><div class="container reveal">' +
           '<div style="border-radius:var(--r-xl);overflow:hidden;aspect-ratio:16/9;background:var(--white);box-shadow:var(--shadow-md)">' +
@@ -30,7 +30,7 @@
       pageHost.innerHTML =
         '<section class="page-head"><div class="container container--narrow">' +
           '<nav class="crumbs"><a href="index.html">Главная</a><span>/</span><span>' + esc(pg.title) + '</span></nav>' +
-          '<span class="eyebrow">Клевер</span>' +
+          '<span class="eyebrow">' + esc(Store.settings().tagline) + '</span>' +
           '<h1>' + esc(pg.title) + '</h1>' +
           '<p class="lead">' + esc(pg.subtitle || '') + '</p>' +
         '</div></section>' +
@@ -66,9 +66,13 @@
     }).join('');
 
     document.getElementById('c-buttons').innerHTML =
+      (s.vk ? '<a class="btn btn--ghost btn--sm" target="_blank" rel="noopener" href="' + esc(UI.vkMessageUrl(s.vk)) + '">ВКонтакте</a>' : '') +
       (s.telegram ? '<a class="btn btn--ghost btn--sm" target="_blank" rel="noopener" href="https://t.me/' + esc(s.telegram) + '">Telegram</a>' : '') +
       (s.whatsapp ? '<a class="btn btn--ghost btn--sm" target="_blank" rel="noopener" href="https://wa.me/' + esc(s.whatsapp) + '">WhatsApp</a>' : '') +
       (s.instagram ? '<a class="btn btn--ghost btn--sm" target="_blank" rel="noopener" href="https://instagram.com/' + esc(s.instagram) + '">Instagram</a>' : '');
+
+    var consentSlot = document.getElementById('c-consent-slot');
+    if (consentSlot) consentSlot.innerHTML = UI.consentField('c-consent');
 
     cForm.addEventListener('submit', function (e) {
       e.preventDefault();
@@ -87,6 +91,7 @@
           field.appendChild(d);
         }
       });
+      if (!UI.consentGiven(cForm, 'c-consent')) ok = false;
       if (!ok) return;
 
       var submit = cForm.querySelector('button[type="submit"]');
