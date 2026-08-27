@@ -76,9 +76,17 @@ function isHidden(rel) {
 
 function cacheFor(rel) {
   if (/\.html?$/.test(rel)) return 'no-cache, must-revalidate';
+
+  /* Фотографии в uploads имеют уникальные имена и никогда не меняются */
   if (/^uploads\//.test(rel)) return 'public, max-age=31536000, immutable';
   if (/^img\//.test(rel)) return 'public, max-age=86400';
-  if (/^assets\//.test(rel)) return 'public, max-age=600';
+
+  /* Скрипты и стили — no-cache, а не «на десять минут»: имена у них
+     постоянные, и после обновления сайта браузер ещё держал бы старый код
+     вместе с новой разметкой. no-cache не запрещает кеш, а требует спросить
+     сервер — при неизменном файле тот отвечает 304 в несколько сотен байт. */
+  if (/^assets\//.test(rel)) return 'no-cache, must-revalidate';
+
   return 'public, max-age=300';
 }
 
