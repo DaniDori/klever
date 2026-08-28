@@ -1173,14 +1173,21 @@
     return 'none';
   }
 
+  /* Куда письма уходят — вопрос не праздный: у двух сервисов ответ разный.
+     Web3Forms шлёт на почту, названную при получении ключа, и полем «адрес
+     почты» её не переопределить. Не сказать об этом прямо — значит оставить
+     человека ждать писем на адресе, который сервис даже не видит. */
   function mailStatus(s) {
-    var on = s.mailProvider && s.mailProvider !== 'none';
-    var via = s.mailProvider === 'web3forms' ? 'Web3Forms' : 'FormSubmit';
-    return on
-      ? '<div class="hint-box"><strong>Письма включены</strong> — уходят через ' + via +
-        '. О каждом заказе вы узнаете сразу.</div>'
-      : '<div class="hint-box hint-box--warn"><strong>Письма не отправляются.</strong> ' +
+    if (!s.mailProvider || s.mailProvider === 'none') {
+      return '<div class="hint-box hint-box--warn"><strong>Письма не отправляются.</strong> ' +
         'Заказы копятся в разделе «Заявки», но узнать о новом можно, только заглянув в панель.</div>';
+    }
+    return s.mailProvider === 'web3forms'
+      ? '<div class="hint-box"><strong>Письма включены</strong> — уходят через Web3Forms ' +
+        'на почту, которую вы указали при получении ключа на web3forms.com. ' +
+        'Поле с адресом ниже при этом способе не используется.</div>'
+      : '<div class="hint-box"><strong>Письма включены</strong> — уходят через FormSubmit на ' +
+        esc(s.mailTo || '') + '.</div>';
   }
 
   function sectionSettings(main) {
@@ -1231,11 +1238,14 @@
         '</div>' +
         '<div class="form-grid">' +
           field('mailKey', 'Ключ Web3Forms', { value: s.mailKey, full: true,
-            hint: 'Бесплатный ключ с web3forms.com вида 1a2b3c4d-… Письма приходят на почту, ' +
-                  'указанную при получении ключа.' }) +
+            hint: 'Бесплатный ключ с web3forms.com вида 1a2b3c4d-… Письма придут на ту почту, ' +
+                  'которую вы указали, когда получали ключ. Пока это поле заполнено, ' +
+                  'работает Web3Forms, а поле ниже не используется — чтобы отправлять ' +
+                  'через FormSubmit, очистите это поле.' }) +
           field('mailTo', 'Или просто адрес почты (FormSubmit)', { value: s.mailTo, full: true,
-            hint: 'Без регистрации. Первое письмо придёт с просьбой подтвердить адрес, ' +
-                  'а сам адрес будет виден в коде страницы.' }) +
+            hint: 'Без регистрации. Первое письмо придёт с просьбой подтвердить адрес: ' +
+                  'нажмите в нём «Activate Form» и проверьте здесь ещё раз. ' +
+                  'Сам адрес будет виден в коде страницы.' }) +
         '</div>' +
         '<div class="editor-actions">' +
           '<button class="btn btn--primary" data-test-mail>Проверить и включить</button>' +

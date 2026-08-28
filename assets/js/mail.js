@@ -60,20 +60,52 @@ window.Mail = (function () {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(s || '').trim());
   }
 
-  function post(url, body) {
+  /* Обрыв связи, а не отказ сервиса: браузер сообщает о нём голым TypeError */
+  function isNetworkError(e) {
+    return !!e && e.name === 'TypeError';
+  }
+
+  /* Второй довод — признак того, что повтор уже был, третьей попытки не будет */
+  function post(url, body, retried) {
     var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
     var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, TIMEOUT) : null;
+    var stop = function () { if (timer) { clearTimeout(timer); timer = null; } };
+    var responded = false;
 
     return fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+
+      /* Сайт отдаёт заголовок Referrer-Policy: same-origin, и по умолчанию
+         браузер не сказал бы стороннему сервису, откуда пришёл запрос.
+         FormSubmit узнаёт сайт именно по Referer, а без него отвечает
+         «откройте страницу через веб-сервер» — и письмо не уходит.
+         Наружу отдаём только адрес сайта, без пути открытой страницы. */
+      referrerPolicy: 'strict-origin-when-cross-origin',
+
       body: JSON.stringify(body),
       signal: ctrl ? ctrl.signal : undefined
     }).then(function (res) {
-      if (timer) clearTimeout(timer);
-      return res.json().catch(function () { return { success: res.ok }; });
+      responded = true;
+      return res.text().then(function (raw) {
+        stop();
+        try {
+          return JSON.parse(raw);
+        } catch (e) {
+          /* Ответ не разобрать — значит, вместо сервиса ответил кто-то другой:
+             проверка на роботов, заглушка провайдера, страница ошибки.
+             Считать это удачей нельзя: панель сказала бы «письмо ушло»,
+             а в почте бы ничего не появилось. */
+          throw new Error(res.ok ? 'unreadable' : 'http-' + res.status);
+        }
+      });
     }).catch(function (e) {
-      if (timer) clearTimeout(timer);
+      stop();
+      /* Мобильный интернет часто рвётся на первом запросе, а второй раз
+         кнопку никто не нажимает. Повторяем только тот обрыв, что случился
+         до ответа сервиса: значит, письмо до него не дошло и вторым
+         не задвоится. Ответ пришёл — второй попытки не будет. */
+      if (!retried && !responded && isNetworkError(e)) return post(url, body, true);
       throw e;
     });
   }
@@ -94,7 +126,16 @@ window.Mail = (function () {
         'отключите его для этого сайта и попробуйте снова.';
     }
     if (m.indexOf('activat') > -1 || m.indexOf('confirm') > -1) {
-      return 'Адрес почты ещё не подтверждён. Загляните в почту — там письмо от FormSubmit со ссылкой.';
+      return 'Адрес почты ещё не подтверждён. Загляните в почту (и в «Спам») — там письмо ' +
+        'от FormSubmit со ссылкой «Activate Form». Нажмите её и проверьте здесь ещё раз.';
+    }
+    if (m.indexOf('web server') > -1) {
+      return 'FormSubmit не понял, с какого сайта пришло письмо. Так бывает, если страницу ' +
+        'открыли файлом с диска, а не по адресу сайта.';
+    }
+    if (m.indexOf('unreadable') > -1 || m.indexOf('http-') > -1) {
+      return 'Сервис ответил не по делу — обычно так отвечает его защита от роботов. ' +
+        'Попробуйте через несколько минут или настройте отправку вторым способом.';
     }
     if (m.indexOf('timeout') > -1 || m.indexOf('abort') > -1) {
       return 'Сервис не ответил вовремя. Попробуйте ещё раз через минуту.';
@@ -108,7 +149,18 @@ window.Mail = (function () {
      так проверка из админки испытывает ровно то, что человек сейчас ввёл,
      и включает отправку только после удачной доставки. */
   function send(order, override) {
-    var s = Object.assign({}, Store.settings(), override || {});
+    try {
+      return sendInner(order, override);
+    } catch (e) {
+      /* Обещание не выбрасывать исключение должно держаться и тогда, когда
+         сломалось что-то до отправки: иначе заказ, уже лёгший в базу,
+         оставит покупателя перед пустым окном. */
+      return Promise.resolve({ ok: false, message: explain(e && (e.message || e)) });
+    }
+  }
+
+  function sendInner(order, override) {
+    var s = Object.assign({}, (typeof Store !== 'undefined' ? Store.settings() : null) || {}, override || {});
     var provider = s.mailProvider || 'none';
     var text = buildText(order);
     var subject = 'Заказ с сайта' +
@@ -132,7 +184,11 @@ window.Mail = (function () {
       };
       /* Если покупатель оставил почту — ответить можно будет прямо из письма */
       if (looksLikeEmail(order.contact)) payload.email = order.contact.trim();
-      if (s.mailTo) payload.to = s.mailTo;
+
+      /* Адрес получателя здесь не задаётся: на бесплатном тарифе Web3Forms
+         шлёт письмо только на почту, указанную при получении ключа. Раньше
+         сюда клали mailTo — сервис принимал его как обычное поле анкеты и
+         просто печатал в письме, отчего казалось, что письма идут туда. */
 
       return post('https://api.web3forms.com/submit', payload)
         .then(function (r) {
