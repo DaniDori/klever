@@ -498,8 +498,8 @@
       if (!t) return;
       if (t.hasAttribute('data-new')) { view.editType = 'product'; view.editing = {}; render(); }
       else if (t.dataset.edit) { view.editType = 'product'; view.editing = Store.product(t.dataset.edit); render(); }
-      else if (t.dataset.up) { Store.move('products', t.dataset.up, -1).then(render); }
-      else if (t.dataset.down) { Store.move('products', t.dataset.down, 1).then(render); }
+      else if (t.dataset.up) { Store.move('products', t.dataset.up, -1).then(function () { renderInPlace('[data-up="' + t.dataset.up + '"]'); }); }
+      else if (t.dataset.down) { Store.move('products', t.dataset.down, 1).then(function () { renderInPlace('[data-down="' + t.dataset.down + '"]'); }); }
       else if (t.dataset.del) {
         var p = Store.product(t.dataset.del);
         confirmDelete('Товар «' + p.title + '»', function () {
@@ -628,8 +628,8 @@
       var byId = function (id) { return all.filter(function (x) { return x.id === id; })[0]; };
       if (t.hasAttribute('data-new')) { view.editType = 'category'; view.editing = {}; render(); }
       else if (t.dataset.edit) { view.editType = 'category'; view.editing = byId(t.dataset.edit); render(); }
-      else if (t.dataset.up) { Store.move('categories', t.dataset.up, -1).then(render); }
-      else if (t.dataset.down) { Store.move('categories', t.dataset.down, 1).then(render); }
+      else if (t.dataset.up) { Store.move('categories', t.dataset.up, -1).then(function () { renderInPlace('[data-up="' + t.dataset.up + '"]'); }); }
+      else if (t.dataset.down) { Store.move('categories', t.dataset.down, 1).then(function () { renderInPlace('[data-down="' + t.dataset.down + '"]'); }); }
       else if (t.dataset.del) {
         var c = byId(t.dataset.del);
         var n = Store.products().filter(function (p) { return p.category === c.slug; }).length;
@@ -703,8 +703,8 @@
       var byId = function (id) { return Store.all().banners.filter(function (x) { return x.id === id; })[0]; };
       if (t.hasAttribute('data-new')) { view.editType = 'banner'; view.editing = {}; render(); }
       else if (t.dataset.edit) { view.editType = 'banner'; view.editing = byId(t.dataset.edit); render(); }
-      else if (t.dataset.up) { Store.move('banners', t.dataset.up, -1).then(render); }
-      else if (t.dataset.down) { Store.move('banners', t.dataset.down, 1).then(render); }
+      else if (t.dataset.up) { Store.move('banners', t.dataset.up, -1).then(function () { renderInPlace('[data-up="' + t.dataset.up + '"]'); }); }
+      else if (t.dataset.down) { Store.move('banners', t.dataset.down, 1).then(function () { renderInPlace('[data-down="' + t.dataset.down + '"]'); }); }
       else if (t.dataset.del) {
         var b = byId(t.dataset.del);
         confirmDelete('Баннер «' + b.title + '»', function () {
@@ -935,7 +935,7 @@
         Store.setRequestStatus(r.id, isNew ? 'done' : 'new').then(function (res) {
           if (!res.ok) { t.disabled = false; UI.toast(res.message, 'warn'); return; }
           UI.toast(isNew ? 'Заявка отмечена обработанной' : 'Заявка снова в новых');
-          render();
+          renderInPlace('[data-toggle]');
         });
         return;
       }
@@ -999,7 +999,7 @@
         t.disabled = true;
         Store.setRequestStatus(r.id, r.status === 'new' ? 'done' : 'new').then(function (res) {
           if (!res.ok) { t.disabled = false; UI.toast(res.message, 'warn'); return; }
-          render();
+          renderInPlace('[data-toggle="' + r.id + '"]');
         });
       } else if (t.dataset.del) {
         var victim = Store.requests().filter(function (x) { return x.id === t.dataset.del; })[0];
@@ -1273,17 +1273,38 @@
   var STATS_SECTIONS = { dashboard: true, data: true };
   var statsAt = 0;
 
+  /* Обычно после перерисовки уместно показать начало экрана: сменился раздел,
+     закрылся редактор. Но при перестановке вещей в длинном списке это значит
+     «искать нужную строку заново», поэтому там прокрутку сохраняем. */
+  var keepScroll = false;
+
   function render() {
     if (!Store.isAdmin()) { renderLogin(); return; }
     renderShell();
     var main = document.getElementById('admin-main');
     (RENDERERS[view.section] || sectionDashboard)(main);
-    window.scrollTo({ top: 0, behavior: 'auto' });
+    if (keepScroll) keepScroll = false;
+    else window.scrollTo({ top: 0, behavior: 'auto' });
 
     if (STATS_SECTIONS[view.section] && Date.now() - statsAt > 10000) {
       statsAt = Date.now();
       refreshStats().then(render);
     }
+  }
+
+  /* Перерисовать, оставив страницу на месте и вернув фокус на ту же кнопку.
+     Благодаря фокусу вещь можно поднять на несколько позиций подряд, не
+     возвращаясь к ней мышью после каждого шага. */
+  function renderInPlace(focusSelector) {
+    var y = window.scrollY;
+    keepScroll = true;
+    render();
+    /* Перерисовка опустошает страницу, и браузер успевает сбросить прокрутку —
+       поэтому возвращаем её явно, а не полагаемся на сохранение. */
+    window.scrollTo({ top: y, behavior: 'auto' });
+    if (!focusSelector) return;
+    var el = document.querySelector(focusSelector);
+    if (el) el.focus({ preventScroll: true });
   }
 
   /* Пока сервер отвечает, кто мы такие, показываем не пустой экран */
