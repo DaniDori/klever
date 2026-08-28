@@ -18,7 +18,9 @@
         '<h2>Страница не найдена</h2><a class="btn btn--ghost" href="index.html">На главную</a>' +
         '</div></div></section>';
     } else {
-      document.title = pg.title + ' — ' + Store.settings().siteName;
+      if (document.title.indexOf(pg.title) === -1) {
+        document.title = pg.title + ' — ' + Store.settings().siteName;
+      }
       var media = key === 'about'
         ? '<section class="section--tight"><div class="container reveal">' +
           '<div style="border-radius:var(--r-xl);overflow:hidden;aspect-ratio:16/9;background:var(--white);box-shadow:var(--shadow-md)">' +

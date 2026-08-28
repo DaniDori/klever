@@ -19,7 +19,11 @@
     return;
   }
 
-  document.title = p.title + ' — Клевер';
+  /* Заголовок ставит сервер (см. server/seo.js) — здесь только страховка
+     на случай, если страницу открыли в обход него. */
+  if (document.title.indexOf(p.title) === -1) {
+    document.title = p.title + ' — ' + Store.settings().siteName;
+  }
 
   var cat = Store.category(p.category);
   document.getElementById('crumbs').innerHTML =

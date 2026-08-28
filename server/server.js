@@ -29,10 +29,12 @@ var http = require('node:http');
 var fs = require('node:fs');
 var path = require('node:path');
 var zlib = require('node:zlib');
+var crypto = require('node:crypto');
 
 var db = require('./db');
 var auth = require('./auth');
 var api = require('./api');
+var seo = require('./seo');
 
 var ROOT = path.resolve(__dirname, '..');
 var PORT = Number(process.env.PORT || 8080);
@@ -114,7 +116,26 @@ function serveStatic(req, res, url) {
   }
 
   var type = MIME[path.extname(full).toLowerCase()] || 'application/octet-stream';
-  var etag = '"' + stat.size.toString(16) + '-' + stat.mtimeMs.toString(16) + '"';
+  var isHTML = /^text\/html/.test(type);
+
+  /* Страницы проходят через SEO-слой: он подставляет заголовок, описание,
+     микроразметку и текст, который иначе появился бы только после скриптов. */
+  var body = null;
+  if (isHTML) {
+    try {
+      body = Buffer.from(seo.apply(fs.readFileSync(full, 'utf8'), url.pathname, url.searchParams, siteBase(req)), 'utf8');
+    } catch (e) {
+      console.error('SEO-слой не смог обработать ' + relFromRoot + ':', e.message);
+      body = fs.readFileSync(full); /* отдаём как есть, лишь бы страница открылась */
+    }
+  }
+
+  /* Метка версии считается от готового ответа: наполнение меняется в базе,
+     а файл при этом остаётся прежним. */
+  var etag = isHTML
+    ? '"' + crypto.createHash('sha1').update(body).digest('hex').slice(0, 20) + '"'
+    : '"' + stat.size.toString(16) + '-' + stat.mtimeMs.toString(16) + '"';
+
   var headers = {
     'Content-Type': type,
     'Cache-Control': cacheFor(relFromRoot.replace(/\\/g, '/')),
@@ -129,10 +150,11 @@ function serveStatic(req, res, url) {
   }
 
   var accepts = String(req.headers['accept-encoding'] || '');
-  var gzip = COMPRESSIBLE.test(type) && accepts.indexOf('gzip') > -1 && stat.size > 1024;
+  var size = body ? body.length : stat.size;
+  var gzip = COMPRESSIBLE.test(type) && accepts.indexOf('gzip') > -1 && size > 1024;
 
   if (req.method === 'HEAD') {
-    if (!gzip) headers['Content-Length'] = stat.size;
+    if (!gzip) headers['Content-Length'] = size;
     res.writeHead(200, headers);
     return res.end();
   }
@@ -141,12 +163,23 @@ function serveStatic(req, res, url) {
     headers['Content-Encoding'] = 'gzip';
     headers['Vary'] = 'Accept-Encoding';
     res.writeHead(200, headers);
-    fs.createReadStream(full).pipe(zlib.createGzip()).pipe(res);
+    if (body) zlib.gzip(body, function (err, out) { res.end(err ? body : out); });
+    else fs.createReadStream(full).pipe(zlib.createGzip()).pipe(res);
   } else {
-    headers['Content-Length'] = stat.size;
+    headers['Content-Length'] = size;
     res.writeHead(200, headers);
-    fs.createReadStream(full).pipe(res);
+    if (body) res.end(body);
+    else fs.createReadStream(full).pipe(res);
   }
+}
+
+/* Адрес сайта таким, каким его видит посетитель: он идёт в canonical,
+   в ссылки Open Graph и в карту сайта. */
+function siteBase(req) {
+  if (process.env.SITE_URL) return String(process.env.SITE_URL).replace(/\/+$/, '');
+  var proto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim() || 'http';
+  var host = String(req.headers['x-forwarded-host'] || req.headers.host || 'localhost').split(',')[0].trim();
+  return proto + '://' + host;
 }
 
 function notFound(res) {
@@ -177,6 +210,20 @@ function createServer(ctx) {
     if (req.method !== 'GET' && req.method !== 'HEAD') {
       res.writeHead(405, { 'Content-Type': 'text/plain; charset=utf-8', 'Allow': 'GET, HEAD' });
       return res.end('Так сюда обращаться нельзя');
+    }
+
+    /* Оба файла собираются из базы: товары появляются и исчезают,
+       а карта сайта должна это отражать без ручных правок. */
+    if (url.pathname === '/robots.txt' || url.pathname === '/sitemap.xml') {
+      var isMap = url.pathname === '/sitemap.xml';
+      var text = isMap ? seo.sitemap(siteBase(req)) : seo.robots(siteBase(req));
+      var buf = Buffer.from(text, 'utf8');
+      res.writeHead(200, {
+        'Content-Type': isMap ? 'application/xml; charset=utf-8' : 'text/plain; charset=utf-8',
+        'Content-Length': buf.length,
+        'Cache-Control': 'public, max-age=3600'
+      });
+      return res.end(req.method === 'HEAD' ? undefined : buf);
     }
 
     serveStatic(req, res, url);
