@@ -1164,6 +1164,25 @@
 
   /* ================= Настройки ================= */
 
+  /* Способ отправки не выбирают руками: он однозначно следует из того,
+     какое поле заполнено. Раньше здесь был список, и можно было ввести ключ,
+     забыв переключить «Не отправлять» — письма молча не уходили. */
+  function mailProviderFor(key, to) {
+    if (String(key || '').trim()) return 'web3forms';
+    if (String(to || '').trim()) return 'formsubmit';
+    return 'none';
+  }
+
+  function mailStatus(s) {
+    var on = s.mailProvider && s.mailProvider !== 'none';
+    var via = s.mailProvider === 'web3forms' ? 'Web3Forms' : 'FormSubmit';
+    return on
+      ? '<div class="hint-box"><strong>Письма включены</strong> — уходят через ' + via +
+        '. О каждом заказе вы узнаете сразу.</div>'
+      : '<div class="hint-box hint-box--warn"><strong>Письма не отправляются.</strong> ' +
+        'Заказы копятся в разделе «Заявки», но узнать о новом можно, только заглянув в панель.</div>';
+  }
+
   function sectionSettings(main) {
     var s = Store.settings();
     main.innerHTML =
@@ -1204,28 +1223,25 @@
       '</div></div>' +
 
       '<div class="panel"><div class="panel__head"><h3>Письма о заказах</h3></div><div class="panel__body">' +
-        '<div class="hint-box" style="margin-bottom:20px">' +
-          'Каждый заказ и так падает в раздел «Заявки» — письмо нужно только чтобы узнать о нём сразу, не заходя в панель. ' +
-          '<strong>Web3Forms</strong> — заведите бесплатный ключ на web3forms.com, ваш адрес почты в коде страницы виден не будет. ' +
-          '<strong>FormSubmit</strong> — без регистрации, но адрес почты будет виден в коде; первое письмо придёт с просьбой подтвердить адрес. ' +
-          'Если письмо не дойдёт, заказ всё равно останется в «Заявках» — потерять его нельзя.' +
+        mailStatus(s) +
+        '<div class="hint-box" style="margin:18px 0 20px">' +
+          'Заказ в любом случае попадает в «Заявки» — письмо нужно, чтобы узнать о нём сразу, не заходя в панель. ' +
+          'Заполните <strong>одно</strong> из двух полей и нажмите «Проверить и включить»: письма включатся, ' +
+          'только если проверочное письмо реально дойдёт.' +
         '</div>' +
         '<div class="form-grid">' +
-          field('mailProvider', 'Как отправлять', {
-            value: s.mailProvider || 'none', type: 'select', options: [
-              { value: 'none', label: 'Не отправлять — только копить заявки' },
-              { value: 'web3forms', label: 'Web3Forms (нужен ключ)' },
-              { value: 'formsubmit', label: 'FormSubmit (без регистрации)' }
-            ]
-          }) +
-          field('mailTo', 'Адрес почты для заказов', { value: s.mailTo,
-            hint: 'Обязателен для FormSubmit' }) +
-          field('mailKey', 'Ключ Web3Forms (access key)', { value: s.mailKey, full: true,
-            hint: 'Строка вида 1a2b3c4d-... из письма после регистрации на web3forms.com' }) +
+          field('mailKey', 'Ключ Web3Forms', { value: s.mailKey, full: true,
+            hint: 'Бесплатный ключ с web3forms.com вида 1a2b3c4d-… Письма приходят на почту, ' +
+                  'указанную при получении ключа.' }) +
+          field('mailTo', 'Или просто адрес почты (FormSubmit)', { value: s.mailTo, full: true,
+            hint: 'Без регистрации. Первое письмо придёт с просьбой подтвердить адрес, ' +
+                  'а сам адрес будет виден в коде страницы.' }) +
         '</div>' +
         '<div class="editor-actions">' +
-          '<button class="btn btn--primary" data-save-mail>Сохранить</button>' +
-          '<button class="btn btn--ghost" data-test-mail>Отправить пробное письмо</button>' +
+          '<button class="btn btn--primary" data-test-mail>Проверить и включить</button>' +
+          (s.mailProvider && s.mailProvider !== 'none'
+            ? '<span class="spacer"></span><button class="btn btn--quiet" data-mail-off>Выключить письма</button>'
+            : '') +
         '</div>' +
       '</div></div>';
 
@@ -1243,9 +1259,9 @@
         return;
       }
 
-      var saveMail = e.target.closest('[data-save-mail]');
-      if (saveMail) {
-        commit(saveMail, Store.saveSettings(collect(['mailProvider','mailTo','mailKey'])), 'Настройки почты сохранены');
+      var mailOff = e.target.closest('[data-mail-off]');
+      if (mailOff) {
+        commit(mailOff, Store.saveSettings({ mailProvider: 'none' }), 'Письма выключены');
         return;
       }
 
@@ -1268,29 +1284,48 @@
 
       var test = e.target.closest('[data-test-mail]');
       if (test) {
-        test.disabled = true;
-        test.textContent = 'Отправляем…';
+        var key = String(val('mailKey')).trim();
+        var to = String(val('mailTo')).trim();
+        var provider = mailProviderFor(key, to);
 
-        /* Сначала дожидаемся сохранения — Mail.send читает настройки из Store,
-           и без этого проверялись бы прежние, а не только что введённые. */
-        Store.saveSettings(collect(['mailProvider','mailTo','mailKey'])).then(function (saved) {
-          if (!saved.ok) throw new Error(saved.message || 'Не удалось сохранить настройки почты');
-          return Mail.send({
-            siteName: Store.settings().siteName,
-            name: 'Проверка связи',
-            contact: Store.settings().email || 'проверка',
-            delivery: 'Самовывоз из мастерской',
-            comment: 'Это пробное письмо из админ-панели. Если оно дошло — отправка заказов настроена.',
-            items: [{ title: 'Пробный товар', size: 'M', qty: 1, price: 1000 }],
-            total: 1000
-          });
-        }).then(function (res) {
-          UI.toast(res.ok ? 'Письмо ушло — проверьте почту (и папку «Спам»)' : res.message, res.ok ? '' : 'warn');
-        }).catch(function (err) {
-          UI.toast(err.message, 'warn');
-        }).then(function () {
-          test.disabled = false;
-          test.textContent = 'Отправить пробное письмо';
+        if (provider === 'none') {
+          UI.toast('Заполните ключ Web3Forms или адрес почты', 'warn');
+          return;
+        }
+
+        test.disabled = true;
+        test.textContent = 'Проверяем…';
+
+        /* Проверяем ровно то, что сейчас в полях, а не то, что сохранено:
+           иначе пришлось бы сперва сохранять вслепую. Включаем письма
+           только после удачной доставки — тогда «включено» значит «работает». */
+        Mail.send({
+          siteName: Store.settings().siteName,
+          name: 'Проверка связи',
+          contact: Store.settings().email || 'проверка',
+          delivery: 'Самовывоз из мастерской',
+          comment: 'Это проверочное письмо из админ-панели «Клевера». ' +
+            'Если оно дошло — письма о заказах настроены и будут приходить сюда же.',
+          items: [{ title: 'Пробный товар', size: 'M', qty: 1, price: 1000 }],
+          total: 1000
+        }, { mailProvider: provider, mailKey: key, mailTo: to }).then(function (res) {
+          if (!res.ok) {
+            test.disabled = false;
+            test.textContent = 'Проверить и включить';
+            UI.toast(res.message || 'Сервис не принял письмо', 'warn');
+            return;
+          }
+          return Store.saveSettings({ mailProvider: provider, mailKey: key, mailTo: to })
+            .then(function (saved) {
+              if (!saved.ok) {
+                test.disabled = false;
+                test.textContent = 'Проверить и включить';
+                UI.toast(saved.message, 'warn');
+                return;
+              }
+              UI.toast('Письмо дошло — письма о заказах включены. Проверьте почту и папку «Спам».');
+              render();
+            });
         });
       }
     });

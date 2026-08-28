@@ -1,8 +1,14 @@
-/* Клевер — отправка заказа на почту без своего сервера.
-   Поддерживаются два бесплатных сервиса-посредника; какой использовать,
-   выбирается в админке (Настройки → Почта).
+/* Клевер — письмо о заказе через бесплатный сервис-посредник.
 
-   web3forms  — нужен бесплатный ключ с web3forms.com, адрес почты в коде не светится
+   Письмо уходит из браузера покупателя, а не с нашего сервера, и это не
+   недосмотр: Web3Forms на бесплатном тарифе отвечает на серверные запросы
+   «Pro plan is required». Отсюда следствие — ключ виден в коде страницы.
+   У обоих сервисов есть защита от спама, включается в их панели.
+
+   Способ отправки не выбирают руками: он следует из того, какое поле
+   заполнено в админке (Настройки → Письма о заказах).
+
+   web3forms  — бесплатный ключ с web3forms.com
    formsubmit — без регистрации, но адрес почты виден в коде страницы
    none       — ничего не отправляем, заказ просто ложится в «Заявки» */
 
@@ -72,9 +78,37 @@ window.Mail = (function () {
     });
   }
 
-  /* Возвращает { ok, skipped, message } и никогда не выбрасывает исключение */
-  function send(order) {
-    var s = Store.settings();
+  /* Сервисы отвечают по-английски и довольно скупо. Переводим то, что
+     встречается на практике, и подсказываем, что с этим делать. */
+  function explain(raw) {
+    var m = String(raw || '').toLowerCase();
+
+    if (m.indexOf('access key') > -1 || m.indexOf('access_key') > -1 || m.indexOf('invalid') > -1) {
+      return 'Ключ не подошёл. Проверьте, что скопировали его целиком с web3forms.com.';
+    }
+    if (m.indexOf('not allowed') > -1 || m.indexOf('pro plan') > -1) {
+      return 'Web3Forms принимает письма только из браузера — с сервера бесплатный тариф их не пропускает.';
+    }
+    if (m.indexOf('failed to fetch') > -1 || m.indexOf('networkerror') > -1 || m.indexOf('load failed') > -1) {
+      return 'Не удалось достучаться до сервиса. Обычно виноват блокировщик рекламы в браузере — ' +
+        'отключите его для этого сайта и попробуйте снова.';
+    }
+    if (m.indexOf('activat') > -1 || m.indexOf('confirm') > -1) {
+      return 'Адрес почты ещё не подтверждён. Загляните в почту — там письмо от FormSubmit со ссылкой.';
+    }
+    if (m.indexOf('timeout') > -1 || m.indexOf('abort') > -1) {
+      return 'Сервис не ответил вовремя. Попробуйте ещё раз через минуту.';
+    }
+    return raw ? 'Сервис ответил: ' + raw : 'Сервис отклонил письмо, не объяснив причину.';
+  }
+
+  /* Возвращает { ok, skipped, message } и никогда не выбрасывает исключение.
+
+     Вторым доводом можно передать настройки почты, которые ещё не сохранены —
+     так проверка из админки испытывает ровно то, что человек сейчас ввёл,
+     и включает отправку только после удачной доставки. */
+  function send(order, override) {
+    var s = Object.assign({}, Store.settings(), override || {});
     var provider = s.mailProvider || 'none';
     var text = buildText(order);
     var subject = 'Заказ с сайта' +
@@ -104,10 +138,10 @@ window.Mail = (function () {
         .then(function (r) {
           return r && r.success
             ? { ok: true, message: 'Письмо отправлено' }
-            : { ok: false, message: (r && r.message) || 'Сервис отклонил письмо' };
+            : { ok: false, message: explain(r && r.message) };
         })
         .catch(function (e) {
-          return { ok: false, message: 'Не получилось связаться с сервисом: ' + (e.message || e) };
+          return { ok: false, message: explain(e && (e.message || e)) };
         });
     }
 
@@ -127,10 +161,10 @@ window.Mail = (function () {
           var ok = r && (r.success === true || r.success === 'true');
           return ok
             ? { ok: true, message: 'Письмо отправлено' }
-            : { ok: false, message: (r && r.message) || 'Сервис отклонил письмо' };
+            : { ok: false, message: explain(r && r.message) };
         })
         .catch(function (e) {
-          return { ok: false, message: 'Не получилось связаться с сервисом: ' + (e.message || e) };
+          return { ok: false, message: explain(e && (e.message || e)) };
         });
     }
 
