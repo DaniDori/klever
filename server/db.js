@@ -308,6 +308,39 @@ function move(collection, id, dir) {
   return true;
 }
 
+/* Расставить порядок сразу по всему списку. Нужно, когда вещь переезжает
+   не на соседнюю позицию, а сразу наверх: серией move это было бы
+   несколько запросов и мигающий список. */
+function reorder(collection, ids) {
+  var shape = shapeOf(collection);
+  var known = {};
+  db.prepare('SELECT id FROM ' + shape.table).all().forEach(function (r) { known[r.id] = true; });
+
+  var seen = {};
+  var ordered = ids.filter(function (id) {
+    if (!known[id] || seen[id]) return false;
+    seen[id] = true;
+    return true;
+  });
+
+  /* Всё, что не назвали, оставляем в прежнем порядке в хвосте — иначе
+     забытая вещь получила бы order = 0 и всплыла наверх. */
+  db.prepare('SELECT id FROM ' + shape.table + ' ORDER BY ord ASC').all().forEach(function (r) {
+    if (!seen[r.id]) ordered.push(r.id);
+  });
+
+  var upd = db.prepare('UPDATE ' + shape.table + ' SET ord = ? WHERE id = ?');
+  db.exec('BEGIN');
+  try {
+    ordered.forEach(function (id, n) { upd.run(n + 1, id); });
+    db.exec('COMMIT');
+  } catch (e) {
+    db.exec('ROLLBACK');
+    throw e;
+  }
+  return list(collection);
+}
+
 /* ---------- Заявки ---------- */
 
 function addRequest(req) {
@@ -504,7 +537,7 @@ module.exports = {
   meta: meta, setMeta: setMeta,
   settings: settings, setSetting: setSetting, saveSettings: saveSettings,
   pages: pages, savePage: savePage,
-  list: list, get: get, upsert: upsert, remove: remove, move: move,
+  list: list, get: get, upsert: upsert, remove: remove, move: move, reorder: reorder,
   addRequest: addRequest, setRequestStatus: setRequestStatus, newRequestCount: newRequestCount,
   publicContent: publicContent, adminContent: adminContent,
   exportAll: exportAll, importAll: importAll, resetToSeed: resetToSeed,

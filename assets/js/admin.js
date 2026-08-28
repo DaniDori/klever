@@ -460,6 +460,73 @@
 
   var GENDER_LABEL = { women: 'Женщинам', men: 'Мужчинам' };
 
+  /* Столько вещей помещается в блок «Что есть сейчас» на главной. Больше
+     отметить нельзя: раньше пометку можно было ставить без счёта, а на
+     главную попадали не они, и связь пометки с главной терялась. */
+  var MAX_ON_HOME = 8;
+
+  function featuredList(exceptId) {
+    return Store.products().filter(function (p) {
+      return p.featured && p.id !== exceptId;
+    });
+  }
+
+  /* Строка про главную под заголовком раздела «Товары». Если пометок больше
+     восьми (так бывает после загрузки старого файла), говорим об этом прямо:
+     иначе часть вещей молча не попадёт на главную. */
+  function homeNote() {
+    var n = featuredList().length;
+    if (n > MAX_ON_HOME) {
+      var extra = n - MAX_ON_HOME;
+      return 'На главной отмечено <strong>' + n + '</strong> вещей, а помещается ' + MAX_ON_HOME +
+        ' — снимите пометку с ' + extra + ' ' + UI.plural(extra, ['вещи', 'вещей', 'вещей']) +
+        ', иначе на главную попадут не те.';
+    }
+    return 'На главной: <strong>' + n + '</strong> из ' + MAX_ON_HOME + '.';
+  }
+
+  /* Отмеченная вещь переезжает в начало списка: так видно, что показано
+     покупателю, и порядок в панели совпадает с порядком на главной. */
+  function liftToTop(id) {
+    var ids = Store.products().map(function (p) { return p.id; });
+    return Store.reorder('products', [id].concat(ids.filter(function (x) { return x !== id; })));
+  }
+
+  /* Спросить, кого снять с главной, когда все восемь мест заняты.
+     Отдаёт id выбранной вещи либо null, если человек передумал. */
+  function askWhomToReplace(exceptId) {
+    return new Promise(function (resolve) {
+      var busy = featuredList(exceptId);
+      var picked = null;
+
+      var m = UI.modal(
+        '<div class="modal__head"><h3 style="margin-bottom:6px">На главной уже ' + busy.length + ' ' +
+          UI.plural(busy.length, ['вещь', 'вещи', 'вещей']) + '</h3>' +
+          '<p class="muted" style="margin:0;font-size:0.9rem">Больше ' + MAX_ON_HOME +
+          ' туда не помещается. Выберите, что убрать с главной вместо этой вещи.</p></div>' +
+        '<div class="rows rows--pick">' +
+          busy.map(function (p) {
+            return '<button class="row row--flat row--link" type="button" data-pick="' + esc(p.id) + '">' +
+              '<img class="row__thumb" src="' + esc(p.thumb || (p.images || [])[0] || UI.imageOf(p)) + '" alt="">' +
+              '<span class="row__body"><span class="row__title">' + esc(p.title) + '</span>' +
+              '<span class="row__sub">' + UI.price(p.price) + '</span></span>' +
+              '</button>';
+          }).join('') +
+        '</div>' +
+        '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px">' +
+          '<button class="btn btn--ghost" data-close>Оставить как есть</button></div>',
+        function () { resolve(picked); }
+      );
+
+      m.el.addEventListener('click', function (e) {
+        var b = e.target.closest('[data-pick]');
+        if (!b) return;
+        picked = b.dataset.pick;
+        m.close();
+      });
+    });
+  }
+
   /* ================= Товары ================= */
 
   function sectionProducts(main) {
@@ -469,7 +536,7 @@
     var cats = Store.categories();
 
     main.innerHTML =
-      head('Товары', 'Карточки, которые видят покупатели в каталоге и на главной.',
+      head('Товары', 'Карточки, которые видят покупатели в каталоге. ' + homeNote(),
         '<button class="btn btn--primary" data-new>+ Добавить товар</button>') +
       '<div class="panel"><div class="rows">' +
       (list.length ? list.map(function (p) {
@@ -557,6 +624,41 @@
     bindFileInput(true);
     bindMd('description');
 
+    /* Кого снять с главной, если место занято. Применяем при сохранении,
+       а не сразу: иначе отказ от правки оставил бы чужую вещь без пометки. */
+    var replaceId = null;
+
+    var featuredBox = main.querySelector('[data-f="featured"]');
+    var featuredHint = document.createElement('span');
+    featuredHint.className = 'field__hint';
+    featuredBox.closest('.field').appendChild(featuredHint);
+
+    function showHint() {
+      if (!featuredBox.checked) {
+        featuredHint.textContent = 'Свободных мест на главной: ' +
+          Math.max(0, MAX_ON_HOME - featuredList(p.id).length) + ' из ' + MAX_ON_HOME + '.';
+        return;
+      }
+      var replaced = replaceId && Store.product(replaceId);
+      featuredHint.textContent = replaced
+        ? 'Вместо «' + replaced.title + '» — она уйдёт с главной при сохранении.'
+        : 'Показывается в блоке «Что есть сейчас» и встаёт в начало списка.';
+    }
+
+    featuredBox.addEventListener('change', function () {
+      if (!featuredBox.checked) { replaceId = null; showHint(); return; }
+      if (featuredList(p.id).length < MAX_ON_HOME) { replaceId = null; showHint(); return; }
+
+      featuredBox.disabled = true;
+      askWhomToReplace(p.id).then(function (chosen) {
+        featuredBox.disabled = false;
+        if (!chosen) { featuredBox.checked = false; replaceId = null; }
+        else { replaceId = chosen; }
+        showHint();
+      });
+    });
+    showHint();
+
     main.addEventListener('click', function (e) {
       var t = e.target.closest('button');
       if (!t) return;
@@ -590,7 +692,29 @@
           order: p.order || (Store.products().length + 1),
           createdAt: p.createdAt || new Date().toISOString().slice(0, 10)
         });
-        commit(t, Store.upsert('products', item), 'Товар сохранён');
+        var becameFeatured = item.featured && !p.featured;
+
+        /* Порядок важен: сперва освобождаем место, потом занимаем его,
+           иначе на короткий миг на главной оказалось бы девять вещей. */
+        var chain = Promise.resolve({ ok: true });
+        if (replaceId) {
+          var loser = Store.product(replaceId);
+          if (loser) {
+            chain = Store.upsert('products', Object.assign({}, loser, { featured: false }));
+          }
+        }
+        chain = chain
+          .then(function (res) {
+            if (res && res.ok === false) throw new Error(res.message);
+            return Store.upsert('products', item);
+          })
+          .then(function (res) {
+            if (res && res.ok === false) return res;
+            return becameFeatured ? liftToTop(item.id || (res.item && res.item.id)) : res;
+          })
+          .catch(function (err) { return { ok: false, message: err.message }; });
+
+        commit(t, chain, 'Товар сохранён');
       }
     });
   }

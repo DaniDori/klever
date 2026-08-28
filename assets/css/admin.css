@@ -363,3 +363,14 @@ body.admin {
 /* В карточке таблица идёт сразу под меткой статуса — большой отступ
    от витринного варианта здесь только разрывает связь между ними. */
 .admin .specs { margin-top: var(--sp-4); }
+
+/* Список выбора «кого убрать с главной» внутри модалки */
+.rows--pick { max-height: 46vh; overflow-y: auto; margin: 0 -20px; }
+.rows--pick .row {
+  width: 100%;
+  border: 0; border-bottom: 1px solid var(--line-soft);
+  background: transparent;
+  text-align: left;
+  font: inherit;
+}
+.rows--pick .row__body { display: flex; flex-direction: column; }

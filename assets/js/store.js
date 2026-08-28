@@ -168,6 +168,12 @@ window.Store = (function () {
       return write('/api/admin/move', { collection: collection, id: id, dir: dir });
     },
 
+    /* Задать порядок целиком: перечисленные встают по списку, остальные
+       остаются как были, следом за ними. */
+    reorder: function (collection, ids) {
+      return write('/api/admin/reorder', { collection: collection, ids: ids });
+    },
+
     savePage: function (key, page) {
       return write('/api/admin/page', { key: key, page: page });
     },

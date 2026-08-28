@@ -333,7 +333,9 @@ window.UI = (function () {
 
   /* ---------- Модалка ---------- */
 
-  function modal(html) {
+  /* onClose вызывается при любом закрытии — крестиком, Escape или кликом мимо.
+     Без него нельзя узнать, что человек передумал, а не просто ничего не выбрал. */
+  function modal(html, onClose) {
     var back = document.createElement('div');
     back.className = 'modal-backdrop';
     back.innerHTML = '<div class="modal" role="dialog" aria-modal="true">' + html + '</div>';
@@ -341,11 +343,15 @@ window.UI = (function () {
     document.body.style.overflow = 'hidden';
     requestAnimationFrame(function () { back.classList.add('is-open'); });
 
+    var closed = false;
     function close() {
+      if (closed) return;
+      closed = true;
       back.classList.remove('is-open');
       document.body.style.overflow = '';
       setTimeout(function () { back.remove(); }, 380);
       document.removeEventListener('keydown', onKey);
+      if (onClose) onClose();
     }
     function onKey(e) { if (e.key === 'Escape') close(); }
 

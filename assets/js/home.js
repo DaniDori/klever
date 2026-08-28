@@ -98,7 +98,14 @@
 
   /* ---------- Ассортимент ---------- */
 
-  var shown = products.slice(0, 8);
+  /* Главную наполняет пометка «Показывать на главной», а не порядок в списке.
+     Раньше брались первые восемь подряд, и пометка ни на что не влияла:
+     вещь с ней могла не попасть на главную, а вещь без неё — попасть.
+     Если не отмечено ничего, показываем начало каталога — пустая главная
+     хуже неточной. */
+  var MAX_ON_HOME = 8;
+  var shown = Store.featured(MAX_ON_HOME);
+  if (!shown.length) shown = products.slice(0, MAX_ON_HOME);
   document.getElementById('assortment').innerHTML = shown.length
     ? shown.map(UI.productCard).join('')
     : '<p class="muted">Товаров пока нет — добавьте их в админ-панели.</p>';

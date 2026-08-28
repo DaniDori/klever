@@ -239,6 +239,16 @@ function adminMove(req, res) {
   });
 }
 
+function adminReorder(req, res) {
+  return readJSON(req).then(function (body) {
+    var collection = String(body.collection || '');
+    if (WRITABLE.indexOf(collection) < 0) return fail(res, 400, 'Нельзя менять порядок в разделе ' + collection);
+    if (!Array.isArray(body.ids)) return fail(res, 400, 'Не передан порядок');
+    if (body.ids.length > 2000) return fail(res, 400, 'Слишком длинный список');
+    return ok(res, { items: db.reorder(collection, body.ids.map(String)) });
+  });
+}
+
 function adminPage(req, res) {
   return readJSON(req).then(function (body) {
     var key = String(body.key || '');
@@ -426,6 +436,7 @@ var ADMIN_ROUTES = {
   'POST /api/admin/save': adminSave,
   'POST /api/admin/remove': adminRemove,
   'POST /api/admin/move': adminMove,
+  'POST /api/admin/reorder': adminReorder,
   'POST /api/admin/page': adminPage,
   'POST /api/admin/settings': adminSettings,
   'POST /api/admin/password': adminPassword,
