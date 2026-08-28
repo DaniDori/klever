@@ -546,12 +546,56 @@ function usedImages() {
   return used;
 }
 
+/* ---------- Журнал и слепки ----------
+
+   База работает в режиме WAL: свежая запись сперва ложится в файл-журнал
+   klever.db-wal рядом и лишь потом переносится в саму базу. Пока журнал
+   на месте, это надёжно — после сбоя SQLite доберёт из него всё сам.
+   Но klever.db, взятый отдельно от журнала, отстаёт от жизни. */
+
+/* Переносит журнал в сам файл базы. После этого klever.db самодостаточен:
+   его можно копировать обычными средствами, ничего не потеряв. */
+function checkpoint() {
+  if (!db) return;
+  try {
+    db.exec('PRAGMA wal_checkpoint(TRUNCATE)');
+  } catch (e) {
+    /* Занято — значит, кто-то читает прямо сейчас; получится в следующий раз */
+    console.warn('Не удалось перенести журнал в базу: ' + e.message);
+  }
+}
+
+/* Слепок базы силами самого SQLite: он снимается на согласованном
+   состоянии и включает журнал. Обычное копирование файла журнал
+   не захватывает, и такая копия молча отстаёт.
+
+   Сначала пишем во временное имя, потом подменяем: если снимок
+   оборвётся на полпути, вчерашняя копия останется целой. */
+function backupTo(dest) {
+  var tmp = dest + '.part';
+  try { fs.unlinkSync(tmp); } catch (e) { /* его могло и не быть */ }
+  db.exec("VACUUM INTO '" + String(tmp).replace(/'/g, "''") + "'");
+  try { fs.unlinkSync(dest); } catch (e) { /* и его тоже */ }
+  fs.renameSync(tmp, dest);
+}
+
+/* Закрытие переносит журнал в базу — поэтому его нельзя пропускать
+   при остановке сервера, иначе правки последних минут останутся
+   только в журнале. */
 function close() {
-  if (db) { db.close(); db = null; }
+  if (!db) return;
+  checkpoint();
+  try {
+    db.close();
+  } catch (e) {
+    console.warn('База закрылась с ошибкой: ' + e.message);
+  }
+  db = null;
 }
 
 module.exports = {
   open: open, close: close, seed: seed,
+  checkpoint: checkpoint, backupTo: backupTo,
   meta: meta, setMeta: setMeta,
   settings: settings, setSetting: setSetting, saveSettings: saveSettings,
   pages: pages, savePage: savePage,

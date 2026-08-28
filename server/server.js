@@ -252,7 +252,10 @@ function backup() {
     fs.mkdirSync(BACKUP_DIR, { recursive: true });
     var stamp = new Date().toISOString().slice(0, 10);
     var dest = path.join(BACKUP_DIR, 'klever-' + stamp + '.db');
-    fs.copyFileSync(DB_PATH, dest);
+
+    /* Не copyFileSync: он снял бы только klever.db, без журнала, и копия
+       молча не содержала бы всего, что записано за последнее время. */
+    db.backupTo(dest);
 
     var old = fs.readdirSync(BACKUP_DIR)
       .filter(function (f) { return /^klever-\d{4}-\d{2}-\d{2}\.db$/.test(f); })
@@ -279,6 +282,12 @@ function start() {
 
   backup();
   setInterval(backup, 24 * 60 * 60 * 1000).unref();
+
+  /* Раз в пять минут переносим журнал в саму базу. Тогда klever.db на диске
+     отстаёт от силы на эти пять минут: и копия сторонними средствами выйдет
+     полной, и внезапная смерть процесса унесёт с собой немногое. */
+  setInterval(db.checkpoint, 5 * 60 * 1000).unref();
+
   setInterval(db.pruneSessions, 60 * 60 * 1000).unref();
 
   var ctx = { dbPath: DB_PATH, uploadsDir: UPLOADS_DIR, root: ROOT };
@@ -302,14 +311,27 @@ function start() {
     console.log('');
   });
 
+  /* Закрытие базы переносит журнал WAL в сам файл — пропустить его нельзя,
+     иначе правки последних минут останутся только в журнале. Раньше запасной
+     выход по таймеру звал process.exit мимо db.close(), а до callback
+     у server.close дело доходит не всегда: он ждёт, пока закроются все
+     открытые соединения, и одного залипшего хватало, чтобы победил таймер. */
+  var stopped = false;
+  function finish() {
+    if (stopped) return;
+    stopped = true;
+    db.close();
+    process.exit(0);
+  }
+
   function shutdown(signal) {
     return function () {
       console.log('\n' + signal + ' — останавливаюсь.');
-      server.close(function () {
-        db.close();
-        process.exit(0);
-      });
-      setTimeout(function () { process.exit(0); }, 3000).unref();
+      server.close(finish);
+      /* Соединения с keep-alive сами не закроются, и server.close ждал бы их
+         до самого таймера. Просим их закрыться — остановка идёт быстро. */
+      if (server.closeIdleConnections) server.closeIdleConnections();
+      setTimeout(finish, 3000).unref();
     };
   }
   process.on('SIGINT', shutdown('SIGINT'));
