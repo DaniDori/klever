@@ -55,7 +55,13 @@ function markup(text) {
   function inline(s) {
     return esc(s)
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2">$1</a>');
+      /* Ссылка на чужой сайт открывается в новой вкладке: уводить человека
+         со страницы на карты — не то, чего он ждёт от текста. */
+      .replace(/\[(.+?)\]\((.+?)\)/g, function (all, text, href) {
+        var external = /^https?:\/\//i.test(href);
+        return '<a href="' + href + '"' +
+          (external ? ' target="_blank" rel="noopener"' : '') + '>' + text + '</a>';
+      });
   }
   function flushPara() { if (para.length) { out.push('<p>' + inline(para.join(' ')) + '</p>'); para = []; } }
   function flushList() { if (list) { out.push('<ul>' + list.join('') + '</ul>'); list = null; } }

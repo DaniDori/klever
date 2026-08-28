@@ -267,6 +267,15 @@ function upsert(collection, item) {
   if (!item.id) item.id = uid(collection.charAt(0));
   if (collection !== 'requests' && !item.order) item.order = nextOrd(shape.table);
 
+  /* Товар помнит категорию по её адресу, а не по id. Значит переименование
+     категории (адрес собирается из названия) оторвало бы от неё все товары:
+     они остались бы ссылаться на адрес, которого больше нет. Переносим их. */
+  var renamedFrom = null;
+  if (collection === 'categories') {
+    var was = db.prepare('SELECT slug FROM categories WHERE id = ?').get(item.id);
+    if (was && was.slug && was.slug !== item.slug) renamedFrom = was.slug;
+  }
+
   var row = itemToRow(shape, item);
   var cols = Object.keys(row);
   var marks = cols.map(function () { return '?'; }).join(', ');
@@ -276,6 +285,15 @@ function upsert(collection, item) {
   var stmt = db.prepare('INSERT INTO ' + shape.table + ' (' + cols.join(', ') + ') VALUES (' + marks + ') ' +
     'ON CONFLICT(id) DO UPDATE SET ' + sets);
   stmt.run.apply(stmt, cols.map(function (c) { return row[c]; }));
+
+  if (renamedFrom) {
+    var moved = db.prepare('UPDATE products SET category = ? WHERE category = ?')
+      .run(String(item.slug || ''), renamedFrom);
+    if (moved.changes) {
+      console.log('Категория ' + renamedFrom + ' → ' + item.slug +
+        ', перенесено товаров: ' + moved.changes);
+    }
+  }
 
   return get(collection, item.id);
 }

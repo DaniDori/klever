@@ -138,7 +138,13 @@ window.UI = (function () {
     function inline(s) {
       return esc(s)
         .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2">$1</a>');
+        /* Ссылка на чужой сайт открывается в новой вкладке: увести человека
+           со страницы товара на карты — не то, чего он ждёт от текста. */
+        .replace(/\[(.+?)\]\((.+?)\)/g, function (all, text, href) {
+          var external = /^https?:\/\//i.test(href);
+          return '<a href="' + href + '"' +
+            (external ? ' target="_blank" rel="noopener"' : '') + '>' + text + '</a>';
+        });
     }
 
     lines.forEach(function (raw) {

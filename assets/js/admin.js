@@ -576,6 +576,18 @@
     });
   }
 
+  /* Адрес категории в ссылке — то же самое, что у товара: собирается сам.
+     Раньше его просили ввести руками, хотя догадаться, что там нужна
+     латиница, было неоткуда. */
+  function categorySlug(title, exceptId) {
+    var base = Store.slugify(title);
+    var taken = Store.categories().filter(function (x) { return x.id !== exceptId; })
+      .map(function (x) { return x.slug; });
+    var slug = base, n = 2;
+    while (taken.indexOf(slug) > -1) { slug = base + '-' + n; n += 1; }
+    return slug;
+  }
+
   /* Адрес товара в ссылке никто не вводит руками — он собирается из названия.
      Если такой адрес уже занят другим товаром, добавляем номер: plate-poleva-2. */
   function productSlug(title, exceptId) {
@@ -769,14 +781,29 @@
     main.innerHTML =
       head(c.id ? 'Изменить категорию' : 'Новая категория', '', '<button class="btn btn--ghost" data-back>← К списку</button>') +
       '<div class="panel"><div class="panel__body"><div class="form-grid">' +
-        field('title', 'Название', { value: c.title, placeholder: 'Платья' }) +
-        field('slug', 'Адрес в ссылке', { value: c.slug, placeholder: 'dresses' }) +
+        field('title', 'Название', { value: c.title, placeholder: 'Платья',
+          hint: 'Адрес в каталоге соберётся из названия сам' }) +
         field('description', 'Короткое описание', { value: c.description, full: true, placeholder: 'Свободный крой, лён и хлопок' }) +
         field('tint', 'Оттенок плитки', { value: c.tint || '#E4EBE1', type: 'color' }) +
       '</div><div class="editor-actions">' +
         '<button class="btn btn--primary" data-save>Сохранить</button>' +
         '<button class="btn btn--ghost" data-back>Отмена</button>' +
       '</div></div></div>';
+
+    var titleBox = main.querySelector('[data-f="title"]');
+    var slugHint = titleBox.closest('.field').querySelector('.field__hint');
+
+    function showSlug() {
+      var t = String(titleBox.value).trim();
+      /* Пока название не меняли, адрес остаётся прежним — иначе ссылки,
+         которые уже где-то стоят, перестали бы открываться. */
+      var slug = (c.slug && t === c.title) ? c.slug : (t ? categorySlug(t, c.id) : '');
+      slugHint.textContent = slug
+        ? 'Адрес в каталоге: /katalog/' + slug
+        : 'Адрес в каталоге соберётся из названия сам';
+    }
+    titleBox.addEventListener('input', showSlug);
+    showSlug();
 
     main.addEventListener('click', function (e) {
       var t = e.target.closest('button');
@@ -787,7 +814,7 @@
         if (!title) { UI.toast('Нужно название', 'warn'); return; }
         commit(t, Store.upsert('categories', Object.assign({}, c, {
           title: title,
-          slug: String(val('slug')).trim() || Store.slugify(title),
+          slug: (c.slug && title === c.title) ? c.slug : categorySlug(title, c.id),
           description: val('description'),
           tint: val('tint'),
           order: c.order || (Store.categories().length + 1)
