@@ -14,7 +14,7 @@
   if (!banners.length) {
     banners = [{
       id: 'empty', eyebrow: 'Клевер', title: 'Скоро здесь появится плакат',
-      text: 'Добавьте его в админ-панели.', ctaText: 'В каталог', ctaLink: 'catalog.html'
+      text: 'Добавьте его в админ-панели.', ctaText: 'В каталог', ctaLink: Routes.catalog()
     }];
   }
 
@@ -22,7 +22,7 @@
     var cta2 = b.ctaText2 && b.ctaLink2
       ? '<a class="btn btn--ghost" href="' + esc(b.ctaLink2) + '">' + esc(b.ctaText2) + '</a>' : '';
     var cta1 = b.ctaText
-      ? '<a class="btn btn--primary" href="' + esc(b.ctaLink || 'catalog.html') + '">' + esc(b.ctaText) + '</a>' : '';
+      ? '<a class="btn btn--primary" href="' + esc(b.ctaLink || Routes.catalog()) + '">' + esc(b.ctaText) + '</a>' : '';
     return '<div class="hero__slide' + (i === 0 ? ' is-active' : '') + '">' +
       '<div class="hero__body">' +
         (b.eyebrow ? '<span class="eyebrow">' + esc(b.eyebrow) + '</span>' : '') +
@@ -81,9 +81,9 @@
   }
 
   var ENTRIES = [
-    { href: 'catalog.html', title: 'Каталог', note: 'Всё, что есть в мастерской', gender: '' },
-    { href: 'catalog.html?gender=women', title: 'Женщинам', note: 'Платья, блузы, сарафаны', gender: 'women' },
-    { href: 'catalog.html?gender=men', title: 'Мужчинам', note: 'Рубашки и костюмы', gender: 'men' }
+    { href: Routes.catalog(), title: 'Каталог', note: 'Всё, что есть в мастерской', gender: '' },
+    { href: Routes.catalog('', { gender: 'women' }), title: 'Женщинам', note: 'Платья, блузы, сарафаны', gender: 'women' },
+    { href: Routes.catalog('', { gender: 'men' }), title: 'Мужчинам', note: 'Рубашки и костюмы', gender: 'men' }
   ];
 
   document.getElementById('entries').innerHTML = ENTRIES.map(function (e) {

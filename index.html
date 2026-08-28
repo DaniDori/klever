@@ -2,14 +2,17 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
+<!-- Адреса вида /tovar/dress-poleva не имеют общего корня с /img и /uploads,
+     а пути к фотографиям хранятся в базе относительными. base это решает. -->
+<base href="/">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Авторская одежда Любови Меньшениной — мастерская Клевер</title>
 <meta name="description" content="Мастерская Клевер — одежда ручной работы Любови Меньшениной: лён, хлопок, меринос. Пошив по меркам, натуральные ткани.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/tokens.css">
-<link rel="stylesheet" href="assets/css/main.css">
+<link rel="stylesheet" href="/assets/css/tokens.css">
+<link rel="stylesheet" href="/assets/css/main.css">
 </head>
 <body>
 
@@ -40,11 +43,11 @@
           <span class="eyebrow">Ассортимент</span>
           <h2>Что есть сейчас</h2>
         </div>
-        <a class="link-arrow" href="catalog.html">Весь каталог →</a>
+        <a class="link-arrow" href="/katalog">Весь каталог →</a>
       </div>
       <div class="grid-products" id="assortment"></div>
       <div style="text-align:center;margin-top:48px">
-        <a class="btn btn--ghost" href="catalog.html">Смотреть все вещи</a>
+        <a class="btn btn--ghost" href="/katalog">Смотреть все вещи</a>
       </div>
     </div>
   </section>
@@ -63,11 +66,12 @@
 
 <footer id="site-footer"></footer>
 
+<script src="/assets/js/routes.js"></script>
 <script src="/api/content.js"></script>
-<script src="assets/js/store.js"></script>
-<script src="assets/js/cart.js"></script>
-<script src="assets/js/mail.js"></script>
-<script src="assets/js/ui.js"></script>
-<script src="assets/js/home.js"></script>
+<script src="/assets/js/store.js"></script>
+<script src="/assets/js/cart.js"></script>
+<script src="/assets/js/mail.js"></script>
+<script src="/assets/js/ui.js"></script>
+<script src="/assets/js/home.js"></script>
 </body>
 </html>

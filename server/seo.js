@@ -9,6 +9,7 @@
 'use strict';
 
 var db = require('./db');
+var routes = require('../assets/js/routes');
 
 /* ---------- Мелочи ---------- */
 
@@ -130,7 +131,7 @@ function forProduct(base, s, slug) {
 
   var cat = db.list('categories').filter(function (c) { return c.slug === p.category; })[0];
   var image = abs(base, (p.images || [])[0] || p.thumb || 'img/dress-fern.jpg');
-  var url = base + '/product.html?id=' + encodeURIComponent(p.slug || p.id);
+  var url = base + routes.product(p.slug || p.id);
   var desc = snippet(p.description || (p.fabric + '. ' + p.color), 300);
 
   var offer = {
@@ -158,9 +159,9 @@ function forProduct(base, s, slug) {
   if ((p.sizes || []).length) product.size = p.sizes;
   product.brand = { '@type': 'Brand', name: s.siteName };
 
-  var trail = [{ name: 'Главная', url: '/' }, { name: 'Каталог', url: 'catalog.html' }];
-  if (cat) trail.push({ name: cat.title, url: 'catalog.html?cat=' + cat.slug });
-  trail.push({ name: p.title, url: 'product.html?id=' + (p.slug || p.id) });
+  var trail = [{ name: 'Главная', url: routes.home() }, { name: 'Каталог', url: routes.catalog() }];
+  if (cat) trail.push({ name: cat.title, url: routes.catalog(cat.slug) });
+  trail.push({ name: p.title, url: routes.product(p.slug || p.id) });
 
   /* Тот же текст, что покажет витрина, — робот получает его сразу */
   var main =
@@ -197,8 +198,8 @@ function crumbHtml(trail) {
   }).join('');
 }
 
-function forCatalog(base, s, q) {
-  var cat = q.get('cat') ? db.list('categories').filter(function (c) { return c.slug === q.get('cat'); })[0] : null;
+function forCatalog(base, s, catSlug, q) {
+  var cat = catSlug ? db.list('categories').filter(function (c) { return c.slug === catSlug; })[0] : null;
   var gender = q.get('gender');
   var products = db.list('products').filter(function (p) {
     if (cat && p.category !== cat.slug) return false;
@@ -213,8 +214,9 @@ function forCatalog(base, s, q) {
       products.length + ' ' + plural(products.length, ['вещь', 'вещи', 'вещей']) + ' в наличии и под заказ.'
     : 'Одежда ручной работы из льна, хлопка и мериноса: платья, блузы, вязаное, палантины, сумки и костюмы. Пошив по индивидуальным меркам.';
 
-  var url = base + '/catalog.html' +
-    (cat ? '?cat=' + cat.slug : (gender ? '?gender=' + gender : ''));
+  /* Остальные фильтры (размер, цена) в канонический адрес не берём:
+     иначе каждая комбинация галочек стала бы отдельной страницей. */
+  var url = base + routes.catalog(cat ? cat.slug : '', gender ? { gender: gender } : null);
 
   var list = {
     '@context': 'https://schema.org',
@@ -225,18 +227,18 @@ function forCatalog(base, s, q) {
       return {
         '@type': 'ListItem',
         position: i + 1,
-        url: base + '/product.html?id=' + encodeURIComponent(p.slug || p.id),
+        url: base + routes.product(p.slug || p.id),
         name: p.title
       };
     })
   };
 
-  var trail = [{ name: 'Главная', url: '/' }, { name: 'Каталог', url: 'catalog.html' }];
-  if (cat) trail.push({ name: cat.title, url: 'catalog.html?cat=' + cat.slug });
+  var trail = [{ name: 'Главная', url: routes.home() }, { name: 'Каталог', url: routes.catalog() }];
+  if (cat) trail.push({ name: cat.title, url: routes.catalog(cat.slug) });
 
   /* Ссылки на товары — чтобы робот нашёл карточки, даже не исполняя скрипты */
   var grid = products.map(function (p) {
-    return '<a class="card" href="product.html?id=' + esc(p.slug || p.id) + '">' +
+    return '<a class="card" href="' + esc(routes.product(p.slug || p.id)) + '">' +
       '<img src="' + esc(p.thumb || (p.images || [])[0] || 'img/dress-fern-sm.jpg') + '" alt="' + esc(p.title) + '" loading="lazy">' +
       '<span class="card__title">' + esc(p.title) + '</span>' +
       '<span class="card__meta">' + esc(p.fabric || '') + '</span>' +
@@ -265,7 +267,7 @@ function forPage(base, s, key) {
   var pg = pages[key];
   if (!pg) return null;
 
-  var trail = [{ name: 'Главная', url: '/' }, { name: pg.title, url: 'page.html?p=' + key }];
+  var trail = [{ name: 'Главная', url: routes.home() }, { name: pg.title, url: routes.page(key) }];
   var main =
     '<section class="page-head"><div class="container container--narrow">' +
       '<h1>' + esc(pg.title) + '</h1>' +
@@ -278,7 +280,7 @@ function forPage(base, s, key) {
   return {
     title: pg.title + ' — ' + s.siteName,
     description: snippet(pg.subtitle || pg.body, 200),
-    canonical: base + '/page.html?p=' + encodeURIComponent(key),
+    canonical: base + routes.page(key),
     image: abs(base, pg.image || 'img/dress-fern.jpg'),
     /* Юридические тексты в поиске не нужны, но робот должен их видеть */
     noindex: key === 'privacy' || key === 'terms',
@@ -311,10 +313,10 @@ function forContacts(base, s) {
     title: 'Контакты — ' + s.siteName,
     description: snippet('Как связаться с мастерской: ' +
       [s.phone, s.email, s.address].filter(Boolean).join(', ') + '. ' + (pg.subtitle || ''), 200),
-    canonical: base + '/contacts.html',
+    canonical: base + routes.contacts(),
     image: abs(base, 'img/dress-fern.jpg'),
     jsonld: [organization(base, s), breadcrumbs(base, [
-      { name: 'Главная', url: '/' }, { name: 'Контакты', url: 'contacts.html' }
+      { name: 'Главная', url: routes.home() }, { name: 'Контакты', url: routes.contacts() }
     ])]
   };
 }
@@ -323,22 +325,17 @@ function forContacts(base, s) {
 
 function metaFor(pathname, query, base) {
   var s = db.settings();
-  var file = pathname.replace(/^\/+/, '') || 'index.html';
 
-  if (file === 'index.html') return forHome(base, s);
-  if (file === 'catalog.html') return forCatalog(base, s, query);
-  if (file === 'contacts.html') return forContacts(base, s);
-  if (file === 'product.html') {
-    var id = query.get('id');
-    return id ? forProduct(base, s, id) : {
-      title: 'Каталог — ' + s.siteName,
-      description: 'Выберите вещь в каталоге.',
-      canonical: base + '/catalog.html',
-      noindex: true
-    };
-  }
-  if (file === 'page.html') return forPage(base, s, query.get('p') || 'about');
-  if (file === 'admin.html') return { noindex: true, skip: true };
+  if (/admin\.html$/.test(pathname)) return { noindex: true, skip: true };
+
+  var route = routes.parse(pathname);
+  if (!route) return null;
+
+  if (route.type === 'home') return forHome(base, s);
+  if (route.type === 'catalog') return forCatalog(base, s, route.cat, query);
+  if (route.type === 'contacts') return forContacts(base, s);
+  if (route.type === 'product') return forProduct(base, s, route.slug);
+  if (route.type === 'page') return forPage(base, s, route.page);
   return null;
 }
 
@@ -380,8 +377,10 @@ function apply(html, pathname, query, base) {
   html = html.replace('</head>', headTags(meta, base, s) + '\n</head>');
 
   Object.keys(meta.fill || {}).forEach(function (id) {
-    var re = new RegExp('(<[^>]+\\sid="' + id + '"[^>]*>)([\\s\\S]*?)(</[a-z]+>)', 'i');
-    html = html.replace(re, function (all, open, inner, close) {
+    /* Имя тега может содержать цифру — h1, h2. Без этого «</h1>» не считался
+       закрывающим, и замена съедала разметку до следующего «</p>». */
+    var re = new RegExp('(<([a-z][a-z0-9]*)[^>]*\\sid="' + id + '"[^>]*>)([\\s\\S]*?)(</\\2>)', 'i');
+    html = html.replace(re, function (all, open, tag, inner, close) {
       return open + meta.fill[id] + close;
     });
   });
@@ -418,27 +417,27 @@ function sitemap(base) {
       '  </url>');
   }
 
-  add(base + '/', '1.0', 'weekly');
-  add(base + '/catalog.html', '0.9', 'weekly');
-  add(base + '/contacts.html', '0.5', 'monthly');
+  add(base + routes.home(), '1.0', 'weekly');
+  add(base + routes.catalog(), '0.9', 'weekly');
+  add(base + routes.contacts(), '0.5', 'monthly');
 
   db.list('categories').forEach(function (c) {
-    add(base + '/catalog.html?cat=' + encodeURIComponent(c.slug), '0.7', 'weekly');
+    add(base + routes.catalog(c.slug), '0.7', 'weekly');
   });
 
   ['women', 'men'].forEach(function (g) {
     var n = db.list('products').filter(function (p) { return p.gender === g; }).length;
-    if (n) add(base + '/catalog.html?gender=' + g, '0.7', 'weekly');
+    if (n) add(base + routes.catalog('', { gender: g }), '0.7', 'weekly');
   });
 
   db.list('products').forEach(function (p) {
-    add(base + '/product.html?id=' + encodeURIComponent(p.slug || p.id), '0.8', 'monthly',
+    add(base + routes.product(p.slug || p.id), '0.8', 'monthly',
       /^\d{4}-\d{2}-\d{2}/.test(p.createdAt) ? p.createdAt.slice(0, 10) : today);
   });
 
   /* Юридические страницы в карту не кладём: они помечены noindex */
   ['about', 'delivery', 'care'].forEach(function (k) {
-    if (db.pages()[k]) add(base + '/page.html?p=' + k, '0.5', 'monthly');
+    if (db.pages()[k]) add(base + routes.page(k), '0.5', 'monthly');
   });
 
   return '<?xml version="1.0" encoding="UTF-8"?>\n' +

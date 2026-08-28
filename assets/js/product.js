@@ -4,18 +4,19 @@
   UI.init();
 
   var esc = UI.esc;
-  var id = new URLSearchParams(location.search).get('id');
+  /* Адрес вида /tovar/dress-poleva: имя вещи теперь в пути, а не в ?id= */
+  var id = (Routes.parse(location.pathname) || {}).slug || '';
   var p = id ? Store.product(id) : null;
   var host = document.getElementById('product');
 
   if (!p) {
     document.getElementById('crumbs').innerHTML =
-      '<a href="index.html">Главная</a><span>/</span><a href="catalog.html">Каталог</a>';
+      '<a href="' + Routes.home() + '">Главная</a><span>/</span><a href="' + Routes.catalog() + '">Каталог</a>';
     host.innerHTML =
       '<div class="empty-state" style="grid-column:1/-1">' + UI.cloverSVG('') +
       '<h2>Вещь не найдена</h2>' +
       '<p>Возможно, её убрали из каталога.</p>' +
-      '<a class="btn btn--ghost" href="catalog.html">Вернуться в каталог</a></div>';
+      '<a class="btn btn--ghost" href="' + Routes.catalog() + '">Вернуться в каталог</a></div>';
     return;
   }
 
@@ -27,9 +28,9 @@
 
   var cat = Store.category(p.category);
   document.getElementById('crumbs').innerHTML =
-    '<a href="index.html">Главная</a><span>/</span>' +
-    '<a href="catalog.html">Каталог</a><span>/</span>' +
-    (cat ? '<a href="catalog.html?cat=' + esc(cat.slug) + '">' + esc(cat.title) + '</a><span>/</span>' : '') +
+    '<a href="' + Routes.home() + '">Главная</a><span>/</span>' +
+    '<a href="' + Routes.catalog() + '">Каталог</a><span>/</span>' +
+    (cat ? '<a href="' + esc(Routes.catalog(cat.slug)) + '">' + esc(cat.title) + '</a><span>/</span>' : '') +
     '<span>' + esc(p.title) + '</span>';
 
   /* ---------- Галерея ---------- */

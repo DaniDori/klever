@@ -16,7 +16,7 @@
   function renderLogin() {
     app.innerHTML =
       '<div class="login-wrap"><div class="login-card">' +
-        '<a class="logo" href="index.html">' + UI.cloverSVG('logo__mark') +
+        '<a class="logo" href="/">' + UI.cloverSVG('logo__mark') +
           '<span class="logo__text"><span class="logo__name">Клевер</span>' +
           '<span class="logo__tag">Админ-панель</span></span></a>' +
         '<p class="muted" style="font-size:0.9rem">Введите пароль, чтобы редактировать сайт.</p>' +
@@ -24,7 +24,7 @@
           '<div class="field"><input class="input" type="password" id="pass" placeholder="Пароль" autocomplete="current-password"></div>' +
           '<button class="btn btn--primary btn--wide" type="submit">Войти</button>' +
         '</form>' +
-        '<p style="margin-top:16px"><a class="link-arrow" href="index.html" style="font-size:0.8rem">← На сайт</a></p>' +
+        '<p style="margin-top:16px"><a class="link-arrow" href="/" style="font-size:0.8rem">← На сайт</a></p>' +
       '</div></div>';
 
     var form = document.getElementById('login-form');
@@ -75,7 +75,7 @@
     app.innerHTML =
       '<div class="admin-shell">' +
         '<aside class="admin-side">' +
-          '<a class="logo" href="index.html">' + UI.cloverSVG('logo__mark') +
+          '<a class="logo" href="/">' + UI.cloverSVG('logo__mark') +
             '<span class="logo__text"><span class="logo__name">Клевер</span>' +
             '<span class="logo__tag">Админ-панель</span></span></a>' +
           '<nav class="admin-nav">' +
@@ -86,7 +86,7 @@
             }).join('') +
           '</nav>' +
           '<div class="admin-side__foot">' +
-            '<a href="index.html" target="_blank" rel="noopener">Открыть сайт ↗</a>' +
+            '<a href="/" target="_blank" rel="noopener">Открыть сайт ↗</a>' +
             '<span>' + (stats ? 'База: ' + kb(stats.dbBytes) + ' · фото: ' + kb(stats.uploadBytes) : 'Данные на сервере') + '</span>' +
             '<button class="btn btn--quiet btn--sm" id="logout" style="align-self:flex-start;padding:0">Выйти</button>' +
           '</div>' +
@@ -700,7 +700,7 @@
         field('title', 'Заголовок', { value: b.title, full: true, placeholder: 'Лён, который дышит вместе с вами' }) +
         field('text', 'Текст', { value: b.text, full: true, type: 'textarea', rows: 3 }) +
         field('ctaText', 'Кнопка — надпись', { value: b.ctaText, placeholder: 'Смотреть коллекцию' }) +
-        field('ctaLink', 'Кнопка — ссылка', { value: b.ctaLink, placeholder: 'catalog.html' }) +
+        field('ctaLink', 'Кнопка — ссылка', { value: b.ctaLink, placeholder: '/katalog' }) +
         field('ctaText2', 'Вторая кнопка — надпись', { value: b.ctaText2, hint: 'Необязательно' }) +
         field('ctaLink2', 'Вторая кнопка — ссылка', { value: b.ctaLink2 }) +
         uploadsBlock(b.image ? [b.image] : [], false) +
@@ -755,7 +755,7 @@
           '<div class="row__body"><div class="row__title">' + esc(pg.title || k[1]) + '</div>' +
           '<div class="row__sub">' + esc((pg.subtitle || '').slice(0, 90)) + '</div></div>' +
           '<div class="row__actions">' +
-            '<a class="icon-btn" href="' + (k[0] === 'contacts' ? 'contacts.html' : 'page.html?p=' + k[0]) + '" target="_blank" title="Посмотреть">↗</a>' +
+            '<a class="icon-btn" href="' + Routes.page(k[0]) + '" target="_blank" title="Посмотреть">↗</a>' +
             '<button class="icon-btn" data-edit="' + k[0] + '">✎</button>' +
           '</div></div>';
       }).join('') + '</div></div>';

@@ -76,9 +76,9 @@
       "title": "Лён, который дышит вместе с вами",
       "text": "Каждая вещь рождается за одним столом, в две руки. Мы не шьём партиями — мы шьём для конкретного человека.",
       "ctaText": "Смотреть коллекцию",
-      "ctaLink": "catalog.html",
+      "ctaLink": "/katalog",
       "ctaText2": "О мастерской",
-      "ctaLink2": "page.html?p=about",
+      "ctaLink2": "/o-masterskoy",
       "image": "img/dress-fern.jpg"
     },
     {
@@ -89,7 +89,7 @@
       "title": "Комплект, в котором можно прожить весь день",
       "text": "Свободная блуза и брюки на манжете. Тот случай, когда домашнее не стыдно надеть на улицу — и наоборот.",
       "ctaText": "Смотреть костюмы",
-      "ctaLink": "catalog.html?cat=suits",
+      "ctaLink": "/katalog/suits",
       "ctaText2": "",
       "ctaLink2": "",
       "image": "img/suit-cherry.jpg"
@@ -102,7 +102,7 @@
       "title": "Ваш размер — это не буква на бирке",
       "text": "Снимем мерки онлайн или в мастерской и сошьём вещь, которая садится так, будто вы в ней родились.",
       "ctaText": "Оставить заявку",
-      "ctaLink": "contacts.html",
+      "ctaLink": "/kontakty",
       "ctaText2": "",
       "ctaLink2": "",
       "image": "img/dress-black.jpg"

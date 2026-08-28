@@ -163,7 +163,7 @@ window.UI = (function () {
     return '<label class="consent" for="' + id + '">' +
       '<input type="checkbox" id="' + id + '">' +
       '<span>Согласен на обработку персональных данных и с ' +
-      '<a href="page.html?p=privacy" target="_blank" rel="noopener">политикой конфиденциальности</a></span>' +
+      '<a href="' + Routes.page('privacy') + '" target="_blank" rel="noopener">политикой конфиденциальности</a></span>' +
       '</label>';
   }
 
@@ -188,35 +188,37 @@ window.UI = (function () {
   /* ---------- Шапка и подвал ---------- */
 
   var NAV = [
-    { href: 'catalog.html',  label: 'Каталог' },
-    { href: 'page.html?p=about', label: 'О мастерской' },
-    { href: 'contacts.html', label: 'Контакты' }
+    { href: Routes.catalog(),     label: 'Каталог' },
+    { href: Routes.page('about'), label: 'О мастерской' },
+    { href: Routes.contacts(),    label: 'Контакты' }
   ];
 
-  function currentFile() {
-    var f = location.pathname.split('/').pop() || 'index.html';
-    return f;
+  /* Какой раздел открыт сейчас. Адреса больше не имена файлов, поэтому
+     сравниваем разделы: карточка товара подсвечивает «Каталог». */
+  function currentSection() {
+    var r = Routes.parse(location.pathname);
+    if (!r) return '';
+    if (r.type === 'product' || r.type === 'catalog') return Routes.catalog();
+    if (r.type === 'contacts') return Routes.contacts();
+    if (r.type === 'page') return Routes.page(r.page);
+    return Routes.home();
   }
 
   function renderHeader() {
     var host = document.getElementById('site-header');
     if (!host) return;
     var s = Store.settings();
-    var file = currentFile();
-    var q = new URLSearchParams(location.search);
+    var here = currentSection();
 
     var links = NAV.map(function (n) {
-      var nf = n.href.split('?')[0];
-      var np = new URLSearchParams(n.href.split('?')[1] || '').get('p');
-      var active = nf === file && (!np || np === q.get('p'));
-      if (file === 'product.html' && nf === 'catalog.html') active = true;
+      var active = n.href === here;
       return '<a href="' + n.href + '"' + (active ? ' class="is-active"' : '') + '>' + esc(n.label) + '</a>';
     }).join('');
 
     host.className = 'site-header';
     host.innerHTML =
       '<div class="container site-header__inner">' +
-        '<a class="logo" href="index.html" aria-label="' + esc(s.siteName) + ' — на главную">' +
+        '<a class="logo" href="' + Routes.home() + '" aria-label="' + esc(s.siteName) + ' — на главную">' +
           cloverSVG('logo__mark') +
           '<span class="logo__text"><span class="logo__name">' + esc(s.siteName) + '</span>' +
           '<span class="logo__tag">' + esc(s.tagline) + '</span></span>' +
@@ -252,7 +254,7 @@ window.UI = (function () {
     if (!host) return;
     var s = Store.settings();
     var cats = Store.categories().slice(0, 5).map(function (c) {
-      return '<li><a href="catalog.html?cat=' + esc(c.slug) + '">' + esc(c.title) + '</a></li>';
+      return '<li><a href="' + esc(Routes.catalog(c.slug)) + '">' + esc(c.title) + '</a></li>';
     }).join('');
 
     host.className = 'site-footer';
@@ -261,17 +263,17 @@ window.UI = (function () {
       '<div class="container">' +
         '<div class="footer-grid">' +
           '<div class="footer-col">' +
-            '<a class="logo" href="index.html">' + cloverSVG('logo__mark') +
+            '<a class="logo" href="' + Routes.home() + '">' + cloverSVG('logo__mark') +
               '<span class="logo__text"><span class="logo__name">' + esc(s.siteName) + '</span>' +
               '<span class="logo__tag">' + esc(s.tagline) + '</span></span></a>' +
             '<p class="footer-note" style="margin-top:16px">' + esc(s.slogan) + '</p>' +
           '</div>' +
           '<div class="footer-col"><h4>Каталог</h4><ul>' + cats + '</ul></div>' +
           '<div class="footer-col"><h4>Покупателю</h4><ul>' +
-            '<li><a href="page.html?p=delivery">Доставка и оплата</a></li>' +
-            '<li><a href="page.html?p=care">Уход за изделиями</a></li>' +
-            '<li><a href="page.html?p=about">О мастерской</a></li>' +
-            '<li><a href="page.html?p=terms">Условия продажи и возврата</a></li>' +
+            '<li><a href="' + Routes.page('delivery') + '">Доставка и оплата</a></li>' +
+            '<li><a href="' + Routes.page('care') + '">Уход за изделиями</a></li>' +
+            '<li><a href="' + Routes.page('about') + '">О мастерской</a></li>' +
+            '<li><a href="' + Routes.page('terms') + '">Условия продажи и возврата</a></li>' +
           '</ul></div>' +
           '<div class="footer-col"><h4>Связь</h4><ul>' +
             '<li><a href="tel:' + esc(String(s.phone).replace(/[^\d+]/g, '')) + '">' + esc(s.phone) + '</a></li>' +
@@ -286,7 +288,7 @@ window.UI = (function () {
           /* Реквизиты продавца покупатель должен видеть с любой страницы */
           (s.legal ? '<span>' + esc(s.legal) + '</span>' : '') +
           '<span>' + esc(s.address) + '</span>' +
-          '<a href="page.html?p=privacy">Политика конфиденциальности</a>' +
+          '<a href="' + Routes.page('privacy') + '">Политика конфиденциальности</a>' +
         '</div>' +
       '</div>';
   }
@@ -551,7 +553,7 @@ window.UI = (function () {
       panel.innerHTML = drawerShell('Корзина',
         '<div class="empty-state">' + cloverSVG('') +
         '<p>Пока пусто. Выберите что-нибудь — соберём заказ и отправим его нам одним письмом.</p>' +
-        '<a class="btn btn--ghost btn--sm" href="catalog.html">В каталог</a></div>');
+        '<a class="btn btn--ghost btn--sm" href="' + Routes.catalog() + '">В каталог</a></div>');
       return;
     }
 
@@ -912,7 +914,7 @@ window.UI = (function () {
       timer = setTimeout(function () {
         taps = 0;
         if (mark) mark.style.transform = '';
-        location.href = logo.getAttribute('href') || 'index.html';
+        location.href = logo.getAttribute('href') || Routes.home();
       }, SECRET_GAP);
     });
   }
@@ -1022,7 +1024,7 @@ window.UI = (function () {
       : price(p.price);
     var many = (p.images || []).length > 1;
 
-    return '<a class="card reveal" href="product.html?id=' + esc(p.slug || p.id) + '">' +
+    return '<a class="card reveal" href="' + esc(Routes.product(p.slug || p.id)) + '">' +
       /* В списке показываем облегчённую версию, если она есть */
       '<div class="card__media"' + (many ? ' data-photos="' + esc(p.id) + '"' : '') + '>' + badge +
         '<img src="' + (p.thumb || imageOf(p)) + '" alt="' + esc(p.title) + '" loading="lazy">' +

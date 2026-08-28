@@ -35,6 +35,7 @@ var db = require('./db');
 var auth = require('./auth');
 var api = require('./api');
 var seo = require('./seo');
+var routes = require('../assets/js/routes');
 
 var ROOT = path.resolve(__dirname, '..');
 var PORT = Number(process.env.PORT || 8080);
@@ -95,7 +96,12 @@ function cacheFor(rel) {
 var COMPRESSIBLE = /^(text\/|application\/(javascript|json|xml))/;
 
 function serveStatic(req, res, url) {
-  var rel = decodeURIComponent(url.pathname).replace(/^\/+/, '');
+  /* Человеческий адрес → какой файл разметки отдать. Сам адрес при этом
+     не меняется: /tovar/dress-poleva так и остаётся в строке браузера. */
+  var route = routes.parse(url.pathname);
+  var rel = route
+    ? route.file
+    : decodeURIComponent(url.pathname).replace(/^\/+/, '');
   if (!rel || rel.slice(-1) === '/') rel += 'index.html';
 
   var full = path.resolve(ROOT, rel);
@@ -210,6 +216,14 @@ function createServer(ctx) {
     if (req.method !== 'GET' && req.method !== 'HEAD') {
       res.writeHead(405, { 'Content-Type': 'text/plain; charset=utf-8', 'Allow': 'GET, HEAD' });
       return res.end('Так сюда обращаться нельзя');
+    }
+
+    /* Старые адреса вида /product.html?id=… уводим на новые навсегда:
+       301 переносит на них накопленный вес и не оставляет дублей. */
+    var moved = routes.legacy(url.pathname, url.search);
+    if (moved) {
+      res.writeHead(301, { 'Location': moved, 'Cache-Control': 'no-cache' });
+      return res.end();
     }
 
     /* Оба файла собираются из базы: товары появляются и исчезают,

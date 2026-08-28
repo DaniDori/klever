@@ -9,13 +9,13 @@
 
   var pageHost = document.getElementById('page');
   if (pageHost) {
-    var key = new URLSearchParams(location.search).get('p') || 'about';
+    var key = (Routes.parse(location.pathname) || {}).page || 'about';
     var pg = Store.page(key);
 
     if (!pg) {
       pageHost.innerHTML =
         '<section class="section"><div class="container"><div class="empty-state">' + UI.cloverSVG('') +
-        '<h2>Страница не найдена</h2><a class="btn btn--ghost" href="index.html">На главную</a>' +
+        '<h2>Страница не найдена</h2><a class="btn btn--ghost" href="' + Routes.home() + '">На главную</a>' +
         '</div></div></section>';
     } else {
       if (document.title.indexOf(pg.title) === -1) {
@@ -31,7 +31,7 @@
 
       pageHost.innerHTML =
         '<section class="page-head"><div class="container container--narrow">' +
-          '<nav class="crumbs"><a href="index.html">Главная</a><span>/</span><span>' + esc(pg.title) + '</span></nav>' +
+          '<nav class="crumbs"><a href="' + Routes.home() + '">Главная</a><span>/</span><span>' + esc(pg.title) + '</span></nav>' +
           '<span class="eyebrow">' + esc(Store.settings().tagline) + '</span>' +
           '<h1>' + esc(pg.title) + '</h1>' +
           '<p class="lead">' + esc(pg.subtitle || '') + '</p>' +

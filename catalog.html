@@ -2,14 +2,17 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
+<!-- Адреса вида /tovar/dress-poleva не имеют общего корня с /img и /uploads,
+     а пути к фотографиям хранятся в базе относительными. base это решает. -->
+<base href="/">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Каталог — Авторская одежда Любови Меньшениной</title>
 <meta name="description" content="Каталог одежды ручной работы: платья, блузы, вязаное, шарфы, палантины, сумки, костюмы.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/tokens.css">
-<link rel="stylesheet" href="assets/css/main.css">
+<link rel="stylesheet" href="/assets/css/tokens.css">
+<link rel="stylesheet" href="/assets/css/main.css">
 </head>
 <body>
 
@@ -18,7 +21,7 @@
 <main>
   <section class="page-head">
     <div class="container">
-      <nav class="crumbs"><a href="index.html">Главная</a><span>/</span><span id="crumb">Каталог</span></nav>
+      <nav class="crumbs"><a href="/">Главная</a><span>/</span><span id="crumb">Каталог</span></nav>
       <span class="eyebrow">Каталог</span>
       <h1 id="cat-title">Все вещи</h1>
       <p id="cat-desc">Каждая вещь шьётся руками. Если размера нет в списке — сошьём по вашим меркам.</p>
@@ -83,11 +86,12 @@
 
 <footer id="site-footer"></footer>
 
+<script src="/assets/js/routes.js"></script>
 <script src="/api/content.js"></script>
-<script src="assets/js/store.js"></script>
-<script src="assets/js/cart.js"></script>
-<script src="assets/js/mail.js"></script>
-<script src="assets/js/ui.js"></script>
-<script src="assets/js/catalog.js"></script>
+<script src="/assets/js/store.js"></script>
+<script src="/assets/js/cart.js"></script>
+<script src="/assets/js/mail.js"></script>
+<script src="/assets/js/ui.js"></script>
+<script src="/assets/js/catalog.js"></script>
 </body>
 </html>

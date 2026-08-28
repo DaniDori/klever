@@ -7,6 +7,7 @@
   var all = Store.products();
   var cats = Store.categories();
   var params = new URLSearchParams(location.search);
+  var route = Routes.parse(location.pathname) || {};
 
   var maxPrice = all.reduce(function (m, p) { return Math.max(m, p.price || 0); }, 0);
   maxPrice = Math.ceil(maxPrice / 1000) * 1000 || 20000;
@@ -19,7 +20,8 @@
 
   var state = {
     gender: params.get('gender') || '',
-    cat: params.get('cat') || '',
+    /* Категория теперь в самом адресе: /katalog/dresses */
+    cat: route.cat || '',
     price: maxPrice,
     sizes: [],
     stockOnly: false,
@@ -43,12 +45,11 @@
     if (c && c.description) document.getElementById('cat-desc').textContent = c.description;
   }
 
-  /* Ссылка на каталог с текущими «кому» и категорией */
+  /* Адрес отражает выбранную категорию и «кому», чтобы ссылкой можно было
+     поделиться. Размер и цена в него не идут — это временные фильтры. */
   function syncUrl() {
-    var q = [];
-    if (state.gender) q.push('gender=' + encodeURIComponent(state.gender));
-    if (state.cat) q.push('cat=' + encodeURIComponent(state.cat));
-    history.replaceState(null, '', 'catalog.html' + (q.length ? '?' + q.join('&') : ''));
+    history.replaceState(null, '',
+      Routes.catalog(state.cat, state.gender ? { gender: state.gender } : null));
   }
 
   function renderGenders() {
