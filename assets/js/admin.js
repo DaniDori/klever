@@ -373,8 +373,10 @@
     });
   }
 
+  /* Формулировка нарочно без рода: «Категория будет удалён» и «Заявка будет
+     удалён» — то, что получалось раньше, когда текст был согласован с товаром. */
   function confirmDelete(what, fn) {
-    confirmAction('Удалить?', esc(what) + ' будет удалён без возможности вернуть.', 'Да, удалить', fn);
+    confirmAction('Удалить?', 'Удаляем: ' + esc(what) + '. Восстановить будет нельзя.', 'Да, удалить', fn);
   }
 
   function confirmAction(title, note, yesLabel, fn) {
@@ -409,7 +411,7 @@
         '<button class="btn btn--quiet btn--sm" data-go="requests">Все заявки →</button></div>' +
         '<div class="rows">' + (d.requests.length
           ? Store.requests().slice(0, 5).map(function (r) {
-              return '<div class="row row--flat">' +
+              return '<div class="row row--flat row--link" data-open="' + r.id + '" tabindex="0" role="link">' +
                 '<div class="row__body"><div class="row__title">' + esc(r.name) + ' — ' + esc(r.productTitle) + '</div>' +
                 '<div class="row__sub">' + esc(r.contact) + ' · ' + esc(UI.dateRu(r.createdAt)) + '</div></div>' +
                 '<div class="row__tags"><span class="tag ' + (r.status === 'new' ? 'tag--new' : 'tag--off') + '">' +
@@ -429,7 +431,30 @@
 
     main.addEventListener('click', function (e) {
       var b = e.target.closest('[data-go]');
-      if (b) { view.section = b.dataset.go; render(); }
+      if (b) { view.section = b.dataset.go; render(); return; }
+      var openRow = e.target.closest('[data-open]');
+      if (openRow) openRequest(openRow.dataset.open);
+    });
+    bindRowKeys(main);
+  }
+
+  /* Открыть карточку заявки — из «Обзора» или из списка */
+  function openRequest(id) {
+    view.section = 'requests';
+    view.editType = 'request';
+    view.editing = { id: id };
+    render();
+  }
+
+  /* Строка не ссылка, а div, поэтому клавиатуре помогаем руками:
+     иначе до заявки нельзя добраться без мыши. */
+  function bindRowKeys(main) {
+    main.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      var row = e.target.closest('[data-open]');
+      if (!row) return;
+      e.preventDefault();
+      openRequest(row.dataset.open);
     });
   }
 
@@ -803,7 +828,133 @@
 
   /* ================= Заявки ================= */
 
+  /* Контакт покупатель пишет как хочет: «+7 910…», «anna@mail.ru», «@anna».
+     Разбираем, чтобы из карточки можно было позвонить или написать сразу,
+     а не выделять номер мышкой и копировать. */
+  function contactLink(contact) {
+    var v = String(contact || '').trim();
+    if (!v) return '';
+
+    if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) {
+      return '<a href="mailto:' + esc(v) + '">' + esc(v) + '</a>';
+    }
+    if (/^@[a-zA-Z0-9_]{3,}$/.test(v)) {
+      return '<a href="https://t.me/' + esc(v.slice(1)) + '" target="_blank" rel="noopener">' + esc(v) + '</a>';
+    }
+    if (/^(https?:\/\/)?(www\.)?vk\.(com|ru)\//i.test(v)) {
+      var href = /^https?:/i.test(v) ? v : 'https://' + v.replace(/^www\./i, '');
+      return '<a href="' + esc(href) + '" target="_blank" rel="noopener">' + esc(v) + '</a>';
+    }
+    var digits = v.replace(/[^\d+]/g, '');
+    if (/^\+?\d{10,15}$/.test(digits)) {
+      return '<a href="tel:' + esc(digits) + '">' + esc(v) + '</a>';
+    }
+    return esc(v);
+  }
+
+  var SOURCE_LABEL = {
+    site: 'Оформление заказа',
+    form: 'Быстрая заявка с карточки товара',
+    contacts: 'Форма на странице «Контакты»'
+  };
+
+  function viewRequest(main) {
+    /* Берём свежую версию из хранилища: после смены статуса объект в view
+       был бы устаревшим и показывал прежнюю пометку. */
+    var r = Store.requests().filter(function (x) { return x.id === view.editing.id; })[0];
+    if (!r) {
+      view.editing = null;
+      sectionRequests(main);
+      return;
+    }
+
+    var isNew = r.status === 'new';
+    var rows = [
+      ['Когда', UI.dateRu(r.createdAt) + ', ' + new Date(r.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })],
+      ['Имя', esc(r.name)],
+      ['Связаться', contactLink(r.contact)],
+      ['Откуда', esc(SOURCE_LABEL[r.source] || 'Форма на сайте')],
+      ['Доставка', esc(r.delivery || '')],
+      ['Размер', esc(r.size || '')]
+    ].filter(function (row) { return row[1]; });
+
+    var goods = (r.items && r.items.length)
+      ? '<div class="panel"><div class="panel__head"><h3>Что заказано</h3></div>' +
+        '<div class="rows">' +
+        r.items.map(function (i) {
+          return '<div class="row row--flat">' +
+            '<div class="row__body"><div class="row__title">' + esc(i.title) + '</div>' +
+            '<div class="row__sub">' +
+              (i.size ? 'размер ' + esc(i.size) : 'без размера') +
+              (i.qty > 1 ? ' · ' + i.qty + ' шт' : '') +
+              ' · ' + UI.price(i.price) + ' за штуку</div></div>' +
+            '<div class="row__tags"><strong>' + UI.price(i.price * (i.qty || 1)) + '</strong></div>' +
+            '</div>';
+        }).join('') +
+        (r.total ? '<div class="row row--flat"><div class="row__body">' +
+          '<div class="row__title">Итого</div></div>' +
+          '<div class="row__tags"><strong>' + UI.price(r.total) + '</strong></div></div>' : '') +
+        '</div></div>'
+      : '';
+
+    main.innerHTML =
+      head('Заявка', esc(r.productTitle || ''),
+        '<button class="btn btn--ghost" data-back>← Ко всем заявкам</button>') +
+
+      '<div class="panel"><div class="panel__body">' +
+        '<div class="tag ' + (isNew ? 'tag--new' : 'tag--off') + '" style="margin-bottom:18px">' +
+          (isNew ? 'новая' : 'обработана') + '</div>' +
+        '<div class="specs">' +
+        rows.map(function (row) {
+          return '<div class="spec"><dt>' + row[0] + '</dt><dd>' + row[1] + '</dd></div>';
+        }).join('') +
+        '</div>' +
+        (r.comment
+          ? '<div class="hint-box" style="margin-top:4px"><strong>Комментарий покупателя.</strong><br>' +
+            esc(r.comment) + '</div>'
+          : '') +
+      '</div></div>' +
+
+      goods +
+
+      '<div class="panel"><div class="panel__body"><div class="editor-actions">' +
+        '<button class="btn btn--primary" data-toggle>' +
+          (isNew ? 'Отметить обработанной' : 'Вернуть в новые') + '</button>' +
+        '<span class="spacer"></span>' +
+        '<button class="btn btn--quiet" data-del>Удалить заявку</button>' +
+      '</div></div></div>';
+
+    main.addEventListener('click', function (e) {
+      var t = e.target.closest('button');
+      if (!t) return;
+
+      if (t.hasAttribute('data-back')) { view.editing = null; render(); return; }
+
+      if (t.hasAttribute('data-toggle')) {
+        t.disabled = true;
+        Store.setRequestStatus(r.id, isNew ? 'done' : 'new').then(function (res) {
+          if (!res.ok) { t.disabled = false; UI.toast(res.message, 'warn'); return; }
+          UI.toast(isNew ? 'Заявка отмечена обработанной' : 'Заявка снова в новых');
+          render();
+        });
+        return;
+      }
+
+      if (t.hasAttribute('data-del')) {
+        confirmDelete('заявка от ' + r.name, function () {
+          Store.remove('requests', r.id).then(function (res) {
+            if (!res.ok) { UI.toast(res.message, 'warn'); return; }
+            UI.toast('Заявка удалена');
+            view.editing = null;
+            render();
+          });
+        });
+      }
+    });
+  }
+
   function sectionRequests(main) {
+    if (view.editing && view.editType === 'request') return viewRequest(main);
     var list = Store.requests();
 
     main.innerHTML =
@@ -818,7 +969,7 @@
             }).join('<br>') +
             (r.total ? '<br><strong>Итого: ' + UI.price(r.total) + '</strong>' : '') + '</div>'
           : '';
-        return '<div class="row row--flat">' +
+        return '<div class="row row--flat row--link" data-open="' + r.id + '" tabindex="0" role="link">' +
           '<div class="row__body"><div class="row__title">' + esc(r.name) + ' · ' + esc(r.contact) + '</div>' +
             '<div class="row__sub">' + esc(r.productTitle) + (r.size ? ' · размер ' + esc(r.size) : '') +
             (r.delivery ? ' · ' + esc(r.delivery) : '') + ' · ' + esc(UI.dateRu(r.createdAt)) + '</div>' +
@@ -836,7 +987,12 @@
 
     main.addEventListener('click', function (e) {
       var t = e.target.closest('button');
-      if (!t) return;
+      if (!t) {
+        /* Клик мимо кнопок — открываем заявку целиком */
+        var openRow = e.target.closest('[data-open]');
+        if (openRow) { openRequest(openRow.dataset.open); }
+        return;
+      }
       if (t.dataset.toggle) {
         var r = Store.requests().filter(function (x) { return x.id === t.dataset.toggle; })[0];
         if (!r) return;
@@ -846,9 +1002,13 @@
           render();
         });
       } else if (t.dataset.del) {
-        confirmDelete('Заявка', function () { done(Store.remove('requests', t.dataset.del), 'Заявка удалена'); });
+        var victim = Store.requests().filter(function (x) { return x.id === t.dataset.del; })[0];
+        confirmDelete('заявка от ' + ((victim && victim.name) || 'покупателя'), function () {
+          done(Store.remove('requests', t.dataset.del), 'Заявка удалена');
+        });
       }
     });
+    bindRowKeys(main);
   }
 
   /* ================= Настройки ================= */

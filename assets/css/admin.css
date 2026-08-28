@@ -333,3 +333,33 @@ body.admin {
 }
 .login-card .logo { justify-content: center; margin-bottom: 20px; }
 .login-card .logo__mark { width: 44px; height: 44px; }
+
+/* ---------- Строка, которая ведёт в карточку ---------- */
+
+/* Без подсказки на строку не нажимают: она выглядит как обычный текст.
+   Курсор и подсветка при наведении говорят, что здесь есть куда перейти. */
+.row--link { cursor: pointer; transition: background 0.18s var(--ease); }
+.row--link:hover { background: var(--sage-mist); }
+.row--link:focus-visible {
+  outline: 2px solid var(--clover);
+  outline-offset: -2px;
+  background: var(--sage-mist);
+}
+/* Кнопки внутри строки живут своей жизнью — по ним не переходим */
+.row--link .row__actions { cursor: default; }
+
+/* ---------- Карточка заявки ---------- */
+
+/* Контакт кликабелен — по нему звонят и пишут. Если он выглядит как
+   обычный текст, про это никто не догадается. */
+.admin .spec dd a {
+  color: var(--clover);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+.admin .spec dd a:hover { color: var(--clover-deep); }
+
+/* В карточке таблица идёт сразу под меткой статуса — большой отступ
+   от витринного варианта здесь только разрывает связь между ними. */
+.admin .specs { margin-top: var(--sp-4); }
