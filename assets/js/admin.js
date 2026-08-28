@@ -49,6 +49,17 @@
 
   /* ================= Каркас ================= */
 
+  /* Названия страниц на случай, если в базе у страницы пустой заголовок.
+     Список нужен и разделу «Страницы», и выбору ссылки у кнопок баннера. */
+  var PAGE_KEYS = [
+    ['about', 'О мастерской'],
+    ['delivery', 'Доставка и оплата'],
+    ['care', 'Уход за изделиями'],
+    ['contacts', 'Контакты'],
+    ['terms', 'Условия продажи и возврата'],
+    ['privacy', 'Политика конфиденциальности']
+  ];
+
   var SECTIONS = [
     { key: 'dashboard', label: 'Обзор' },
     { key: 'products',  label: 'Товары' },
@@ -164,6 +175,79 @@
 
   function listValue(key) {
     return String(val(key)).split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+  }
+
+  /* ---------- Куда ведёт кнопка ----------
+
+     Адрес набирали руками, и опечатка вроде «/katalog/platya» вместо
+     «/katalog/dresses» вела на пустую страницу — заметить это можно было,
+     только открыв главную. Теперь готовые адреса собираются из того, что
+     и так лежит в базе: каталог, категории, страницы. Собираются через
+     Routes, поэтому не разъедутся, если схема адресов однажды поменяется.
+
+     Строка «Свой адрес» остаётся: баннер иногда ведёт наружу, во ВКонтакте. */
+
+  var LINK_CUSTOM = '__custom__';
+
+  function linkOptions() {
+    var out = [
+      { value: '', label: '— никуда —' },
+      { value: Routes.home(), label: 'Главная' },
+      { value: Routes.catalog(), label: 'Каталог — все вещи' },
+      { value: Routes.catalog('', { gender: 'women' }), label: 'Каталог — женщинам' },
+      { value: Routes.catalog('', { gender: 'men' }), label: 'Каталог — мужчинам' }
+    ];
+    Store.categories().forEach(function (c) {
+      out.push({ value: Routes.catalog(c.slug), label: 'Категория — ' + c.title });
+    });
+    PAGE_KEYS.forEach(function (k) {
+      var pg = Store.page(k[0]) || {};
+      out.push({ value: Routes.page(k[0]), label: 'Страница — ' + (pg.title || k[1]) });
+    });
+    out.push({ value: LINK_CUSTOM, label: 'Свой адрес…' });
+    return out;
+  }
+
+  /* Список плюс спрятанное поле для своего адреса. Если сохранённого адреса
+     в списке нет — скажем, категорию потом переименовали — он не теряется:
+     список встаёт на «Свой адрес», а сам адрес виден в поле рядом. */
+  function linkField(key, label, value) {
+    value = String(value == null ? '' : value);
+    var options = linkOptions();
+    var known = options.some(function (o) { return o.value === value; });
+    var custom = !!value && !known;
+
+    return field(key, label, {
+      value: custom ? LINK_CUSTOM : value,
+      type: 'select',
+      options: options
+    }) +
+      '<div class="field" data-link-custom="' + key + '"' + (custom ? '' : ' hidden') + '>' +
+        '<label class="field__label">Свой адрес</label>' +
+        '<input class="input" type="text" data-f="' + key + '__custom" value="' +
+          esc(custom ? value : '') + '" placeholder="https://vk.com/club163698701">' +
+        '<span class="field__hint">Ссылка наружу целиком или свой путь на сайте</span>' +
+      '</div>';
+  }
+
+  function linkValue(key) {
+    var v = String(val(key) || '');
+    return v === LINK_CUSTOM ? String(val(key + '__custom') || '').trim() : v;
+  }
+
+  /* Одна привязка на весь редактор: полей со ссылками бывает несколько */
+  function bindLinkFields(main) {
+    main.addEventListener('change', function (e) {
+      var sel = e.target.closest('select[data-f]');
+      if (!sel) return;
+      var box = main.querySelector('[data-link-custom="' + sel.dataset.f + '"]');
+      if (!box) return;
+      box.hidden = sel.value !== LINK_CUSTOM;
+      if (!box.hidden) {
+        var input = box.querySelector('input');
+        if (input) input.focus();
+      }
+    });
   }
 
   /* ---------- Загрузка изображений ----------
@@ -876,9 +960,9 @@
         field('title', 'Заголовок', { value: b.title, full: true, placeholder: 'Лён, который дышит вместе с вами' }) +
         field('text', 'Текст', { value: b.text, full: true, type: 'textarea', rows: 3 }) +
         field('ctaText', 'Кнопка — надпись', { value: b.ctaText, placeholder: 'Смотреть коллекцию' }) +
-        field('ctaLink', 'Кнопка — ссылка', { value: b.ctaLink, placeholder: '/katalog' }) +
+        linkField('ctaLink', 'Кнопка — куда ведёт', b.ctaLink) +
         field('ctaText2', 'Вторая кнопка — надпись', { value: b.ctaText2, hint: 'Необязательно' }) +
-        field('ctaLink2', 'Вторая кнопка — ссылка', { value: b.ctaLink2 }) +
+        linkField('ctaLink2', 'Вторая кнопка — куда ведёт', b.ctaLink2) +
         uploadsBlock(b.image ? [b.image] : [], false) +
       '</div><div class="editor-actions">' +
         '<button class="btn btn--primary" data-save>Сохранить</button>' +
@@ -887,6 +971,7 @@
 
     paintUploads(false);
     bindFileInput(false);
+    bindLinkFields(main);
 
     main.addEventListener('click', function (e) {
       var t = e.target.closest('button');
@@ -898,8 +983,8 @@
         if (uploading) { UI.toast('Подождите, картинка ещё загружается', 'warn'); return; }
         commit(t, Store.upsert('banners', Object.assign({}, b, {
           eyebrow: val('eyebrow'), title: title, text: val('text'),
-          ctaText: val('ctaText'), ctaLink: val('ctaLink'),
-          ctaText2: val('ctaText2'), ctaLink2: val('ctaLink2'),
+          ctaText: val('ctaText'), ctaLink: linkValue('ctaLink'),
+          ctaText2: val('ctaText2'), ctaLink2: linkValue('ctaLink2'),
           active: !!val('active'),
           image: uploadBuffer[0] || '',
           order: b.order || (Store.all().banners.length + 1)
@@ -909,15 +994,6 @@
   }
 
   /* ================= Страницы ================= */
-
-  var PAGE_KEYS = [
-    ['about', 'О мастерской'],
-    ['delivery', 'Доставка и оплата'],
-    ['care', 'Уход за изделиями'],
-    ['contacts', 'Контакты'],
-    ['terms', 'Условия продажи и возврата'],
-    ['privacy', 'Политика конфиденциальности']
-  ];
 
   function sectionPages(main) {
     if (view.editing !== null && view.editType === 'page') return editPage(main);

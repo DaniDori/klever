@@ -590,6 +590,11 @@ p  { margin: 0 0 var(--sp-4); }
   transition: color 0.25s var(--ease);
 }
 .filter-row:hover { color: var(--clover-deep); }
+
+/* Категория, в которой сейчас нечего показать: строка остаётся на месте,
+   чтобы столбец фильтров не менял высоту, но видно, что нажимать незачем */
+.filter-row.is-empty { opacity: 0.35; cursor: default; }
+.filter-row.is-empty:hover { color: var(--ink-soft); }
 .filter-row.is-active { color: var(--clover); }
 .filter-row.is-active .filter-row__dot { background: var(--clover); border-color: var(--clover); }
 .filter-row__dot {
@@ -707,6 +712,8 @@ p  { margin: 0 0 var(--sp-4); }
 /* ---------- Формы ---------- */
 
 .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: var(--sp-4); }
+/* display у .field перебивает то, как браузер прячет [hidden], — возвращаем */
+.field[hidden] { display: none; }
 .field__label { font-size: var(--fs-xs); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
 .field__hint { font-size: var(--fs-xs); color: var(--muted); }
 .input, .textarea {

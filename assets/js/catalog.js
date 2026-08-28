@@ -71,12 +71,21 @@
     }).length;
   }
 
+  /* Пустые категории из списка не выбрасываются, а гаснут. Раньше они
+     исчезали, столбец фильтров становился короче, и всё, что ниже —
+     цена, размеры, наличие — прыгало вверх прямо под рукой у человека.
+     Заодно видно, что в разделе сейчас ничего нет, а не что он пропал. */
   function renderCats() {
     var rows = [{ slug: '', title: 'Все вещи', n: countIn('') }].concat(cats.map(function (c) {
       return { slug: c.slug, title: c.title, n: countIn(c.slug) };
-    })).filter(function (r) { return r.n > 0 || !r.slug || state.cat === r.slug; });
+    }));
     document.getElementById('f-cats').innerHTML = rows.map(function (r) {
-      return '<button class="filter-row' + (state.cat === r.slug ? ' is-active' : '') + '" data-cat="' + esc(r.slug) + '">' +
+      /* Выбранную категорию не гасим, даже если в ней пусто: иначе из неё
+         нельзя было бы выйти, да и непонятно, что именно выбрано. */
+      var empty = !r.n && r.slug && state.cat !== r.slug;
+      return '<button class="filter-row' + (state.cat === r.slug ? ' is-active' : '') +
+        (empty ? ' is-empty' : '') + '" data-cat="' + esc(r.slug) + '"' +
+        (empty ? ' disabled' : '') + '>' +
         '<span class="filter-row__label"><span class="filter-row__dot"></span>' + esc(r.title) + '</span>' +
         '<span class="chip__count">' + r.n + '</span></button>';
     }).join('');
