@@ -702,14 +702,6 @@ window.UI = (function () {
           '<input class="input" id="ch-name" name="name" autocomplete="name" placeholder="Анна"></div>' +
         '<div class="field"><label class="field__label" for="ch-contact">Телефон, почта или @телеграм</label>' +
           '<input class="input" id="ch-contact" name="contact" placeholder="+7 900 000-00-00"></div>' +
-        '<div class="field"><label class="field__label" for="ch-delivery">Доставка</label>' +
-          '<select class="input select" id="ch-delivery" name="delivery">' +
-            '<option>СДЭК до пункта выдачи</option>' +
-            '<option>СДЭК курьером до двери</option>' +
-            '<option>Почта России</option>' +
-            '<option>Самовывоз из мастерской</option>' +
-            '<option>Пока не решил(а), подскажите</option>' +
-          '</select></div>' +
         '<div class="field"><label class="field__label" for="ch-comment">Комментарий</label>' +
           '<textarea class="textarea" id="ch-comment" name="comment" placeholder="Мерки, город, пожелания по цвету"></textarea></div>' +
       '</form>',
@@ -778,11 +770,14 @@ window.UI = (function () {
         if ((r.struck || r.gone) && fromCart && r.data.key) Cart.remove(r.data.key);
       });
 
+      /* Способ доставки не спрашиваем: город, сроки и оплату всё равно
+         обсуждают в переписке, а лишний список в форме только задерживает
+         человека на полпути к отправке. Что важно — он напишет сам
+         в комментарии. */
       var order = {
         siteName: Store.settings().siteName,
         name: form.name.value.trim(),
         contact: form.contact.value.trim(),
-        delivery: form.delivery.value,
         comment: form.comment.value.trim(),
         items: picked,
         total: pickedTotal
@@ -796,7 +791,6 @@ window.UI = (function () {
         name: order.name,
         contact: order.contact,
         size: picked.length === 1 ? picked[0].size : '',
-        delivery: order.delivery,
         comment: order.comment,
         items: picked.map(function (i) {
           return { title: i.title, size: i.size, qty: i.qty, price: i.price };

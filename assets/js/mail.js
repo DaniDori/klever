@@ -27,7 +27,6 @@ window.Mail = (function () {
     lines.push('');
     lines.push('Имя: ' + order.name);
     lines.push('Связь: ' + order.contact);
-    if (order.delivery) lines.push('Доставка: ' + order.delivery);
     lines.push('');
     lines.push('Товары:');
     (order.items || []).forEach(function (i, n) {
