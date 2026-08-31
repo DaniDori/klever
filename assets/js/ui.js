@@ -253,6 +253,17 @@ window.UI = (function () {
     var onScroll = function () { host.classList.toggle('is-stuck', window.scrollY > 12); };
     window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
+
+    /* Высота шапки уходит в стили: плакат на главной занимает ровно оставшийся
+       экран. Считать её надо после отрисовки и заново при смене ширины —
+       на узком экране название переносится, и шапка становится выше. */
+    var publishHeight = function () {
+      document.documentElement.style.setProperty('--header-h', host.offsetHeight + 'px');
+    };
+    publishHeight();
+    if (window.ResizeObserver) new ResizeObserver(publishHeight).observe(host);
+    else window.addEventListener('resize', publishHeight);
+    window.addEventListener('load', publishHeight);   /* шрифты доезжают позже разметки */
   }
 
   function renderFooter() {

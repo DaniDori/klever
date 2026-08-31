@@ -266,46 +266,138 @@ p  { margin: 0 0 var(--sp-4); }
 
 /* ---------- Герой / баннеры ---------- */
 
-.hero { position: relative; padding-top: clamp(28px, 4vw, 56px); }
-.hero__slides { position: relative; }
+/* Плакат занимает ровно один экран: высоту вычитаем из высоты окна, чтобы
+   шапка не выдавливала низ плаката за край. --header-h ставит скрипт шапки по
+   её настоящей высоте — на телефоне название переносится на две строки, и
+   постоянное число здесь врало бы. svh, а не vh: на телефоне vh считает окно
+   без панелей браузера, и плакат оказывается выше видимой части. */
+.hero {
+  position: relative;
+  height: calc(100vh - var(--header-h, 78px));
+  height: calc(100svh - var(--header-h, 78px));
+  min-height: 460px;
+  max-height: 1000px;
+  overflow: hidden;
+  background: var(--linen);
+}
+.hero__slides { position: absolute; inset: 0; }
 .hero__slide {
-  display: grid;
-  grid-template-columns: 1.05fr 0.95fr;
-  gap: clamp(24px, 4vw, 64px);
-  align-items: center;
-  opacity: 0;
-  visibility: hidden;
   position: absolute;
   inset: 0;
+  opacity: 0;
+  visibility: hidden;
   transition: opacity 0.8s var(--ease-soft);
 }
-.hero__slide.is-active { opacity: 1; visibility: visible; position: relative; }
-.hero__body { max-width: 34rem; }
-.hero__body h1 { margin-bottom: var(--sp-5); }
-.hero__body p { color: var(--ink-soft); font-size: var(--fs-lg); margin-bottom: var(--sp-6); }
-.hero__media {
-  position: relative;
-  border-radius: var(--r-xl);
-  overflow: hidden;
-  aspect-ratio: 4 / 5;
-  background: var(--linen);
-  box-shadow: var(--shadow-lg);
+.hero__slide.is-active { opacity: 1; visibility: visible; }
+
+/* Фото подрезается по размеру экрана, а не вписывается целиком: на плакате
+   важна не вся фотография, а её середина. */
+.hero__photo {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  object-position: center;
 }
-.hero__media img { width: 100%; height: 100%; object-fit: cover; }
-.hero__dots { display: flex; gap: var(--sp-2); margin-top: var(--sp-6); }
+.hero__scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg,
+    rgba(28, 32, 26, 0.42) 0%,
+    rgba(28, 32, 26, 0.30) 38%,
+    rgba(28, 32, 26, 0.34) 62%,
+    rgba(28, 32, 26, 0.55) 100%);
+}
+
+.hero__body {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding-bottom: clamp(56px, 9vh, 96px);   /* место точкам и стрелке внизу */
+  color: var(--on-dark);
+}
+.hero__body .eyebrow { color: rgba(255, 255, 255, 0.86); }
+.hero__body .eyebrow::before { background: rgba(255, 255, 255, 0.6); }
+.hero__body h1 {
+  color: var(--on-dark);
+  max-width: 22ch;
+  margin-bottom: var(--sp-4);
+  text-shadow: 0 2px 26px rgba(20, 24, 19, 0.45);
+}
+.hero__body p {
+  color: rgba(255, 255, 255, 0.92);
+  font-size: var(--fs-lg);
+  max-width: 46ch;
+  margin-bottom: var(--sp-6);
+  text-shadow: 0 1px 18px rgba(20, 24, 19, 0.45);
+}
+.hero__actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+
+/* На фотографии светлая обводка читается, а тёмно-зелёная рамка — нет */
+.hero__actions .btn--ghost {
+  color: var(--on-dark);
+  border-color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.hero__actions .btn--ghost:hover {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: transparent;
+  color: var(--clover-deep);
+}
+
+.hero__dots {
+  position: absolute;
+  left: 0; right: 0;
+  bottom: clamp(58px, 7vh, 82px);
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  gap: var(--sp-2);
+}
 .hero__dot {
   width: 28px; height: 3px;
   border: 0; padding: 0;
   border-radius: var(--r-full);
-  background: var(--linen-deep);
+  background: rgba(255, 255, 255, 0.45);
   cursor: pointer;
   transition: background 0.3s var(--ease), width 0.3s var(--ease);
 }
-.hero__dot.is-active { background: var(--sage); width: 44px; }
+.hero__dot.is-active { background: var(--on-dark); width: 44px; }
 
-@media (max-width: 820px) {
-  .hero__slide { grid-template-columns: 1fr; }
-  .hero__media { aspect-ratio: 4 / 5; order: -1; }
+.hero__scroll {
+  position: absolute;
+  left: 50%;
+  bottom: clamp(14px, 2.4vh, 26px);
+  transform: translateX(-50%);
+  z-index: 2;
+  width: 44px; height: 44px;
+  display: grid;
+  place-items: center;
+  color: var(--on-dark);
+  opacity: 0.85;
+  animation: hero-bob 2.6s var(--ease-soft) infinite;
+}
+.hero__scroll svg { width: 28px; height: 28px; }
+.hero__scroll:hover { opacity: 1; }
+@keyframes hero-bob {
+  0%, 100% { transform: translate(-50%, 0); }
+  50% { transform: translate(-50%, 7px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero__scroll { animation: none; }
+}
+
+@media (max-width: 640px) {
+  .hero__body h1 { max-width: 16ch; }
+  .hero__body p { font-size: var(--fs-md); }
+  .hero__actions { width: 100%; flex-direction: column; align-items: center; }
+  .hero__actions .btn { width: min(100%, 22rem); }
 }
 
 /* ---------- Полоска преимуществ ---------- */
@@ -794,14 +886,12 @@ p  { margin: 0 0 var(--sp-4); }
 
 .card__media,
 .gallery__main,
-.hero__media,
 .about-strip__media {
   background: var(--white);
 }
 
 .card__media img,
 .gallery__main img,
-.hero__media img,
 .about-strip__media img,
 .cart-line__img,
 .gallery__thumb img,

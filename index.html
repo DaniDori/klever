@@ -8,6 +8,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Авторская одежда Любови Меньшениной — мастерская Клевер</title>
 <meta name="description" content="Мастерская Клевер — одежда ручной работы Любови Меньшениной: лён, хлопок, меринос. Пошив по меркам, натуральные ткани.">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
@@ -20,16 +23,19 @@
 
 <main>
 
-  <!-- Плакаты -->
+  <!-- Плакаты: фото во весь экран, текст поверх него -->
   <section class="hero">
-    <div class="container">
-      <div class="hero__slides" id="hero"></div>
-      <div class="hero__dots" id="hero-dots"></div>
-    </div>
+    <div class="hero__slides" id="hero"></div>
+    <div class="hero__dots" id="hero-dots"></div>
+    <a class="hero__scroll" href="#pod-plakatom" aria-label="Смотреть дальше">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M5 9l7 7 7-7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </a>
   </section>
 
   <!-- Кнопки перехода в каталог -->
-  <section class="section--tight">
+  <section class="section--tight" id="pod-plakatom">
     <div class="container">
       <div class="entry-buttons reveal" id="entries"></div>
     </div>

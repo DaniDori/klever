@@ -18,19 +18,25 @@
     }];
   }
 
+  /* Плакат — это фото во весь экран, а текст лежит поверх него. Поэтому
+     фотография вставляется отдельным слоем и подрезается по месту (object-fit
+     в стилях), а между фото и текстом идёт затемнение: без него светлый снимок
+     съедает белые буквы. Первый плакат грузим сразу — он виден до прокрутки. */
   hero.innerHTML = banners.map(function (b, i) {
     var cta2 = b.ctaText2 && b.ctaLink2
       ? '<a class="btn btn--ghost" href="' + esc(b.ctaLink2) + '">' + esc(b.ctaText2) + '</a>' : '';
     var cta1 = b.ctaText
       ? '<a class="btn btn--primary" href="' + esc(b.ctaLink || Routes.catalog()) + '">' + esc(b.ctaText) + '</a>' : '';
     return '<div class="hero__slide' + (i === 0 ? ' is-active' : '') + '">' +
-      '<div class="hero__body">' +
+      '<img class="hero__photo" src="' + UI.imageOf({ image: b.image, slug: b.id + b.title }) + '"' +
+        ' alt="' + esc(b.title) + '"' + (i === 0 ? ' fetchpriority="high"' : ' loading="lazy"') + '>' +
+      '<div class="hero__scrim"></div>' +
+      '<div class="container hero__body">' +
         (b.eyebrow ? '<span class="eyebrow">' + esc(b.eyebrow) + '</span>' : '') +
         '<h1>' + esc(b.title) + '</h1>' +
-        '<p>' + esc(b.text || '') + '</p>' +
-        '<div style="display:flex;gap:12px;flex-wrap:wrap">' + cta1 + cta2 + '</div>' +
+        (b.text ? '<p>' + esc(b.text) + '</p>' : '') +
+        (cta1 || cta2 ? '<div class="hero__actions">' + cta1 + cta2 + '</div>' : '') +
       '</div>' +
-      '<div class="hero__media"><img src="' + UI.imageOf({ image: b.image, slug: b.id + b.title }) + '" alt="' + esc(b.title) + '"></div>' +
     '</div>';
   }).join('');
 
