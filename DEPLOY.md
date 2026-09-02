@@ -88,6 +88,7 @@ ExecStart=/usr/bin/node /var/www/klever/server/server.js
 Environment=PORT=8080
 Environment=HOST=127.0.0.1
 Environment=SECURE_COOKIES=1
+Environment=SITE_URL=https://klever.ru
 Restart=always
 RestartSec=3
 
@@ -104,6 +105,11 @@ WantedBy=multi-user.target
 
 `HOST=127.0.0.1` — важная строка: она закрывает сайт от прямого доступа
 из интернета. Наружу его будет отдавать nginx, и только по HTTPS.
+
+`SITE_URL` — адрес, который сайт считает своим. Без него адрес берётся из
+заголовка запроса, и на чужое имя, направленное на этот же сервер, сайт
+ответит своим содержимым с чужим адресом в `canonical`, `og:url` и карте
+сайта. Поисковик принимает это за копию сайта и показывает в выдаче её.
 
 Включите и запустите:
 
@@ -157,6 +163,35 @@ sudo certbot --nginx -d klever.ru -d www.klever.ru
 
 Certbot сам перепишет конфиг под HTTPS и настроит продление. Откройте
 `https://klever.ru/` — сайт на месте.
+
+### Чужие домены
+
+Единственный блок с `listen 443` становится для nginx умолчанием: сайт получит
+любой запрос, в каком бы имени его ни спросили. Если на этот же адрес указывает
+чужой домен — а так бывает и без вашего участия, — поисковик проиндексирует
+сайт ещё раз под чужим именем. Заведите `/etc/nginx/sites-available/catch-all`:
+
+```nginx
+server {
+    listen 443 ssl default_server;
+    listen [::]:443 ssl default_server;
+    ssl_reject_handshake on;
+}
+```
+
+```bash
+sudo ln -s /etc/nginx/sites-available/catch-all /etc/nginx/sites-enabled/ && sudo nginx -t && sudo systemctl reload nginx
+```
+
+Имя не совпало — рукопожатие отвергается, отдавать нечего. Побочное следствие:
+по одному только IP-адресу сайт больше не открывается, что для поисковика тоже
+к лучшему. Проверить можно так — свой домен отвечает 200, чужой не отвечает
+вовсе:
+
+```bash
+curl -s -o /dev/null -w '%{http_code}
+' https://klever.ru/
+```
 
 ## 6. Защита сервера
 
