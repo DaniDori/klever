@@ -2,19 +2,24 @@
 
 window.UI = (function () {
 
-  /* ---------- Клевер-трилистник ---------- */
+  /* ---------- Клевер-четырёхлистник ---------- */
 
-  /* Трилистник: три круга и стебель */
+  /* Четырёхлистник: четыре круга по углам и стебель из-под них. Круги
+     заметно перекрываются — иначе на 28 пикселях в шапке между листьями
+     видны просветы, и знак рассыпается на четыре точки. Листья по диагонали
+     чуть светлее — глубина остаётся, как у прежнего трилистника, а пара
+     «светлый верх, тёмный низ» читалась бы как два разных знака. */
   function cloverSVG(cls) {
     return '<svg class="' + (cls || '') + '" viewBox="0 0 100 100" fill="none" aria-hidden="true">' +
-      '<circle cx="50" cy="31" r="15" fill="currentColor" opacity="0.9"/>' +
-      '<circle cx="33.5" cy="52" r="15" fill="currentColor" opacity="0.72"/>' +
-      '<circle cx="66.5" cy="52" r="15" fill="currentColor" opacity="0.72"/>' +
-      '<path d="M50 58c0 12-3 22-11 31" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/>' +
+      '<circle cx="35" cy="35" r="18" fill="currentColor" opacity="0.72"/>' +
+      '<circle cx="65" cy="35" r="18" fill="currentColor" opacity="0.9"/>' +
+      '<circle cx="35" cy="63" r="18" fill="currentColor" opacity="0.9"/>' +
+      '<circle cx="65" cy="63" r="18" fill="currentColor" opacity="0.72"/>' +
+      '<path d="M50 70c0 11-3 20-11 27" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/>' +
       '</svg>';
   }
 
-  var CLOVER_MASK = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='31' r='15' fill='%23000'/%3E%3Ccircle cx='33.5' cy='52' r='15' fill='%23000'/%3E%3Ccircle cx='66.5' cy='52' r='15' fill='%23000'/%3E%3Cpath d='M50 58c0 12-3 22-11 31' stroke='%23000' stroke-width='3.4' stroke-linecap='round'/%3E%3C/svg%3E\")";
+  var CLOVER_MASK = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='35' cy='35' r='18' fill='%23000'/%3E%3Ccircle cx='65' cy='35' r='18' fill='%23000'/%3E%3Ccircle cx='35' cy='63' r='18' fill='%23000'/%3E%3Ccircle cx='65' cy='63' r='18' fill='%23000'/%3E%3Cpath d='M50 70c0 11-3 20-11 27' stroke='%23000' stroke-width='3.4' stroke-linecap='round'/%3E%3C/svg%3E\")";
 
   var CARET = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238C8D82' stroke-width='1.2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E\")";
 
@@ -61,8 +66,9 @@ window.UI = (function () {
       '<circle cx="' + cx + '" cy="' + cy + '" r="' + (34 * scale).toFixed(1) + '" fill="' + pair[1] + '" opacity="0.45"/>' +
       lines +
       '<g transform="translate(' + cx + ' ' + cy + ') rotate(' + rot + ') scale(' + scale.toFixed(2) + ') translate(-50 -50)" fill="#FFFFFF" opacity="0.62">' +
-      '<circle cx="50" cy="31" r="15"/><circle cx="33.5" cy="52" r="15"/><circle cx="66.5" cy="52" r="15"/>' +
-      '<path d="M50 58c0 12-3 22-11 31" stroke="#FFFFFF" stroke-width="3.4" stroke-linecap="round" fill="none"/>' +
+      '<circle cx="35" cy="35" r="18"/><circle cx="65" cy="35" r="18"/>' +
+      '<circle cx="35" cy="63" r="18"/><circle cx="65" cy="63" r="18"/>' +
+      '<path d="M50 70c0 11-3 20-11 27" stroke="#FFFFFF" stroke-width="3.4" stroke-linecap="round" fill="none"/>' +
       '</g></svg>';
 
     return 'data:image/svg+xml,' + encodeURIComponent(svg);
