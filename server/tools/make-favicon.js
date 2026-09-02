@@ -11,28 +11,56 @@ var OUT = process.argv[2];
 var CREAM = [0xFB, 0xFA, 0xF6];
 var CLOVER = [0x4F, 0x6B, 0x4A];
 
-var LEAVES = [
-  { x: 34, y: 34, r: 20, a: 0.8 },
-  { x: 66, y: 34, r: 20, a: 1 },
-  { x: 34, y: 62, r: 20, a: 1 },
-  { x: 66, y: 62, r: 20, a: 0.8 }
-];
-
-/* Стебель: кубическая кривая M50 70 c0 12 -3 21 -12 28, разложенная в ломаную */
-function stemPoints() {
-  var p0 = [50, 70], p1 = [50, 82], p2 = [47, 91], p3 = [38, 98];
+/* Кривая Безье в ломаную: и лист, и стебель заданы кубическими сегментами,
+   а проверять попадание точки удобнее в многоугольник. */
+function flatten(segments, steps) {
   var pts = [];
-  for (var i = 0; i <= 64; i++) {
-    var t = i / 64, u = 1 - t;
-    pts.push([
-      u * u * u * p0[0] + 3 * u * u * t * p1[0] + 3 * u * t * t * p2[0] + t * t * t * p3[0],
-      u * u * u * p0[1] + 3 * u * u * t * p1[1] + 3 * u * t * t * p2[1] + t * t * t * p3[1]
-    ]);
-  }
+  segments.forEach(function (s) {
+    for (var i = 1; i <= steps; i++) {
+      var t = i / steps, u = 1 - t;
+      pts.push([
+        u * u * u * s[0][0] + 3 * u * u * t * s[1][0] + 3 * u * t * t * s[2][0] + t * t * t * s[3][0],
+        u * u * u * s[0][1] + 3 * u * u * t * s[1][1] + 3 * u * t * t * s[2][1] + t * t * t * s[3][1]
+      ]);
+    }
+  });
   return pts;
 }
-var STEM = stemPoints();
+
+/* Сердце остриём в точке (0,0), телом вверх — тот же путь, что LEAF в ui.js:
+   M0 0 C-7 -11 -20 -16 -20 -26 C-20 -33 -11 -36 0 -28 C11 -36 20 -33 20 -26
+   C20 -16 7 -11 0 0 Z */
+var HEART = flatten([
+  [[0, 0], [-7, -11], [-20, -16], [-20, -26]],
+  [[-20, -26], [-20, -33], [-11, -36], [0, -28]],
+  [[0, -28], [11, -36], [20, -33], [20, -26]],
+  [[20, -26], [20, -16], [7, -11], [0, 0]]
+], 24);
+
+/* Четыре листа: тот же контур, повёрнутый вокруг общего острия в (50,46) */
+var LEAVES = [0, 90, 180, 270].map(function (deg, i) {
+  var rad = deg * Math.PI / 180, cos = Math.cos(rad), sin = Math.sin(rad);
+  return {
+    a: [0.8, 1, 1, 0.8][i],
+    poly: HEART.map(function (p) {
+      return [50 + p[0] * cos - p[1] * sin, 46 + p[0] * sin + p[1] * cos];
+    })
+  };
+});
+
+/* Стебель: кубическая кривая M50 72 c0 11 -3 20 -11 25 */
+var STEM = flatten([[[50, 72], [50, 83], [47, 92], [39, 97]]], 64);
 var STEM_R = 2.75;
+
+/* Точка внутри многоугольника: считаем пересечения луча вправо */
+function inPolygon(x, y, poly) {
+  var inside = false;
+  for (var i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    var xi = poly[i][0], yi = poly[i][1], xj = poly[j][0], yj = poly[j][1];
+    if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
 
 function distToSegment(px, py, a, b) {
   var vx = b[0] - a[0], vy = b[1] - a[1];
@@ -69,9 +97,7 @@ function render(size) {
           var ux = fx * scale, uy = fy * scale;   /* координаты в системе 0..100 */
           var cover = 0;
           for (var i = 0; i < LEAVES.length; i++) {
-            var L = LEAVES[i];
-            var dx = ux - L.x, dy = uy - L.y;
-            if (dx * dx + dy * dy <= L.r * L.r) cover = Math.max(cover, L.a);
+            if (inPolygon(ux, uy, LEAVES[i].poly)) cover = Math.max(cover, LEAVES[i].a);
           }
           if (cover < 1) {
             for (var k = 1; k < STEM.length; k++) {

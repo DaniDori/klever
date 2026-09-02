@@ -1,10 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
   <rect width="100" height="100" rx="22" fill="#FBFAF6"/>
-  <g fill="#4F6B4A">
-    <circle cx="34" cy="34" r="20" opacity="0.8"/>
-    <circle cx="66" cy="34" r="20"/>
-    <circle cx="34" cy="62" r="20"/>
-    <circle cx="66" cy="62" r="20" opacity="0.8"/>
+  <path d="M50 72c0 11-3 20-11 25" stroke="#4F6B4A" stroke-width="3.4" stroke-linecap="round" fill="none"/>
+  <g transform="translate(50 46)" fill="#4F6B4A">
+    <path d="M0 0C-7 -11-20 -16-20 -26C-20 -33-11 -36 0 -28C11 -36 20 -33 20 -26C20 -16 7 -11 0 0Z" opacity="0.8"/>
+    <path d="M0 0C-7 -11-20 -16-20 -26C-20 -33-11 -36 0 -28C11 -36 20 -33 20 -26C20 -16 7 -11 0 0Z" transform="rotate(90)"/>
+    <path d="M0 0C-7 -11-20 -16-20 -26C-20 -33-11 -36 0 -28C11 -36 20 -33 20 -26C20 -16 7 -11 0 0Z" transform="rotate(180)"/>
+    <path d="M0 0C-7 -11-20 -16-20 -26C-20 -33-11 -36 0 -28C11 -36 20 -33 20 -26C20 -16 7 -11 0 0Z" transform="rotate(270)" opacity="0.8"/>
   </g>
-  <path d="M50 70c0 12-3 21-12 28" stroke="#4F6B4A" stroke-width="5.5" stroke-linecap="round" fill="none"/>
 </svg>

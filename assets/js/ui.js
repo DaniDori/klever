@@ -4,22 +4,31 @@ window.UI = (function () {
 
   /* ---------- Клевер-четырёхлистник ---------- */
 
-  /* Четырёхлистник: четыре круга по углам и стебель из-под них. Круги
-     заметно перекрываются — иначе на 28 пикселях в шапке между листьями
-     видны просветы, и знак рассыпается на четыре точки. Листья по диагонали
-     чуть светлее — глубина остаётся, как у прежнего трилистника, а пара
-     «светлый верх, тёмный низ» читалась бы как два разных знака. */
+  /* Четырёхлистник: четыре сердца остриями в центр — вверх, вправо, вниз,
+     влево — и стебель из-под нижнего. Лист описан один раз и разворачивается
+     поворотом: форма правится в одном месте, а все четыре листа заведомо
+     одинаковы. Соседние чуть разной плотности, будто свет падает слева
+     сверху, — иначе знак выглядит плоским пятном. Стебель идёт первым, до
+     листьев: поверх нижнего сердца тёмная черта смотрелась бы царапиной. */
+  var LEAF = 'M0 0C-7 -11-20 -16-20 -26C-20 -33-11 -36 0 -28C11 -36 20 -33 20 -26C20 -16 7 -11 0 0Z';
+  var STEM = 'M50 72c0 11-3 20-11 25';
+
   function cloverSVG(cls) {
+    function leaf(deg, opacity) {
+      return '<path d="' + LEAF + '" fill="currentColor" opacity="' + opacity + '"' +
+        (deg ? ' transform="rotate(' + deg + ')"' : '') + '/>';
+    }
     return '<svg class="' + (cls || '') + '" viewBox="0 0 100 100" fill="none" aria-hidden="true">' +
-      '<circle cx="35" cy="35" r="18" fill="currentColor" opacity="0.72"/>' +
-      '<circle cx="65" cy="35" r="18" fill="currentColor" opacity="0.9"/>' +
-      '<circle cx="35" cy="63" r="18" fill="currentColor" opacity="0.9"/>' +
-      '<circle cx="65" cy="63" r="18" fill="currentColor" opacity="0.72"/>' +
-      '<path d="M50 70c0 11-3 20-11 27" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/>' +
+      '<path d="' + STEM + '" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/>' +
+      '<g transform="translate(50 46)">' +
+        leaf(0, 0.72) + leaf(90, 0.9) + leaf(180, 0.9) + leaf(270, 0.72) +
+      '</g>' +
       '</svg>';
   }
 
-  var CLOVER_MASK = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='35' cy='35' r='18' fill='%23000'/%3E%3Ccircle cx='65' cy='35' r='18' fill='%23000'/%3E%3Ccircle cx='35' cy='63' r='18' fill='%23000'/%3E%3Ccircle cx='65' cy='63' r='18' fill='%23000'/%3E%3Cpath d='M50 70c0 11-3 20-11 27' stroke='%23000' stroke-width='3.4' stroke-linecap='round'/%3E%3C/svg%3E\")";
+  /* Та же фигура сплошным чёрным: этой маской вырезаются клеверные
+     значки в оформлении, ей важны очертания, а не полутона. */
+  var CLOVER_MASK = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 72c0 11-3 20-11 25' stroke='%23000' stroke-width='3.4' stroke-linecap='round' fill='none'/%3E%3Cg transform='translate(50 46)' fill='%23000'%3E%3Cpath d='M0 0C-7 -11-20 -16-20 -26C-20 -33-11 -36 0 -28C11 -36 20 -33 20 -26C20 -16 7 -11 0 0Z'/%3E%3Cpath d='M0 0C-7 -11-20 -16-20 -26C-20 -33-11 -36 0 -28C11 -36 20 -33 20 -26C20 -16 7 -11 0 0Z' transform='rotate(90)'/%3E%3Cpath d='M0 0C-7 -11-20 -16-20 -26C-20 -33-11 -36 0 -28C11 -36 20 -33 20 -26C20 -16 7 -11 0 0Z' transform='rotate(180)'/%3E%3Cpath d='M0 0C-7 -11-20 -16-20 -26C-20 -33-11 -36 0 -28C11 -36 20 -33 20 -26C20 -16 7 -11 0 0Z' transform='rotate(270)'/%3E%3C/g%3E%3C/svg%3E\")";
 
   var CARET = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238C8D82' stroke-width='1.2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E\")";
 
@@ -66,10 +75,11 @@ window.UI = (function () {
       '<circle cx="' + cx + '" cy="' + cy + '" r="' + (34 * scale).toFixed(1) + '" fill="' + pair[1] + '" opacity="0.45"/>' +
       lines +
       '<g transform="translate(' + cx + ' ' + cy + ') rotate(' + rot + ') scale(' + scale.toFixed(2) + ') translate(-50 -50)" fill="#FFFFFF" opacity="0.62">' +
-      '<circle cx="35" cy="35" r="18"/><circle cx="65" cy="35" r="18"/>' +
-      '<circle cx="35" cy="63" r="18"/><circle cx="65" cy="63" r="18"/>' +
-      '<path d="M50 70c0 11-3 20-11 27" stroke="#FFFFFF" stroke-width="3.4" stroke-linecap="round" fill="none"/>' +
-      '</g></svg>';
+      '<path d="' + STEM + '" stroke="#FFFFFF" stroke-width="3.4" stroke-linecap="round" fill="none"/>' +
+      '<g transform="translate(50 46)">' +
+      '<path d="' + LEAF + '"/><path d="' + LEAF + '" transform="rotate(90)"/>' +
+      '<path d="' + LEAF + '" transform="rotate(180)"/><path d="' + LEAF + '" transform="rotate(270)"/>' +
+      '</g></g></svg>';
 
     return 'data:image/svg+xml,' + encodeURIComponent(svg);
   }
