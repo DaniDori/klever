@@ -915,7 +915,7 @@ window.UI = (function () {
      просто с паузой в четверть секунды — за неё мы понимаем, что клик один. */
 
   var SECRET_CLICKS = 5;
-  var SECRET_GAP = 450;
+  var SECRET_GAP = 900;
 
   function bindSecretAdmin() {
     var taps = 0;
