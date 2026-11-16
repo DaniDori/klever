@@ -3,6 +3,10 @@
 Пошагово, без предположений о том, что вы уже что-то знаете. Всё, что нужно, —
 VPS с Ubuntu 24.04 (подойдёт самый дешёвый: 1 ядро, 1 ГБ памяти) и домен.
 
+С рабочего компьютера к VPS проекта можно подключиться командой `ssh Klever`.
+На подготовленном VPS уже установлены Node.js, nginx и Certbot, а также создан
+системный пользователь `klever`. До развёртывания магазина nginx отвечает HTTP 404.
+
 Сервер «Клевера» не тянет ни одной внешней библиотеки: SQLite встроен в Node
 начиная с версии 22.5. Поэтому `npm install` делать не нужно — его нечего
 устанавливать.
@@ -139,7 +143,7 @@ server {
         proxy_pass http://127.0.0.1:8080;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-For $remote_addr;
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
@@ -148,8 +152,10 @@ server {
 }
 ```
 
-Заголовок `X-Forwarded-For` нужен, чтобы ограничения на перебор пароля и на
-частоту заявок считались по адресу настоящего посетителя, а не по адресу nginx.
+При прямом подключении посетителей nginx записывает свой `$remote_addr` в
+`X-Forwarded-For`. Сервер магазина берёт первый адрес из этого заголовка
+для ограничения попыток входа и частоты заявок. Подставляемый посетителем
+заголовок nginx перезаписывает.
 
 Включите сайт и выпустите сертификат:
 
@@ -209,59 +215,39 @@ curl -s -o /dev/null -w '%{http_code}
 
 ## 6. Защита сервера
 
-Три меры, которые стоит включить до того, как на сервере появятся заявки
-покупателей. Вход по паролю при этом сохраняется — просто подбирать его
-становится бессмысленно.
-
-**Задержки и штрафы в sshd.** Создайте `/etc/ssh/sshd_config.d/70-klever.conf`:
+**Вход по ключу.** Сначала добавьте публичный ключ рабочего компьютера в
+`~/.ssh/authorized_keys` и проверьте вход в отдельной сессии. Оставьте
+исходную сессию открытой до завершения проверки. Файл
+`/etc/ssh/sshd_config.d/00-klever.conf` на VPS проекта задаёт:
 
 ```
+AuthenticationMethods publickey
+PubkeyAuthentication yes
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PermitRootLogin prohibit-password
 MaxAuthTries 3
 LoginGraceTime 30
-PerSourcePenalties authfail:10s noauth:5s grace-exceeded:20s crash:120s refuseconnection:30s min:30s max:30m
+DisableForwarding yes
+X11Forwarding no
 ```
 
-`PerSourcePenalties` появился в OpenSSH 9.8: после неудачной попытки адрес
-получает отказ в соединении на растущий срок, до получаса. Проверьте конфиг
-и примените без разрыва текущей сессии:
+Проверьте конфиг и перечитайте настройки SSH. После этого ещё раз проверьте
+вход с рабочего компьютера в новой сессии:
 
 ```bash
 sudo sshd -t && sudo systemctl reload ssh
 ```
 
-**Пауза перед ответом «неверный пароль».** Без неё сервер отвечает мгновенно,
-и перебор идёт со скоростью сети. Добавьте в `/etc/pam.d/sshd` перед строкой
-`@include common-auth`:
-
-```
-auth optional pam_faildelay.so delay=4000000
-```
-
-**Бан за повторные попытки.** Создайте `/etc/fail2ban/jail.d/klever.local`:
-
-```ini
-[DEFAULT]
-ignoreip = 127.0.0.1/8 ::1
-bantime  = 15m
-findtime = 10m
-maxretry = 4
-bantime.increment = true
-bantime.factor    = 2
-bantime.maxtime   = 1d
-
-[sshd]
-enabled  = true
-mode     = aggressive
-maxretry = 4
-```
+**Бан за повторные попытки.** На VPS работает Fail2ban с фильтром `sshd`.
+Проверка фильтра и состояния:
 
 ```bash
-sudo fail2ban-client -t && sudo systemctl restart fail2ban
+sudo fail2ban-client -t && sudo fail2ban-client status sshd
 ```
 
-Первый бан — 15 минут, каждый следующий вдвое дольше, потолок сутки.
-Если забанили себя (четыре опечатки подряд), снять бан можно с консоли
-хостера: `sudo fail2ban-client set sshd unbanip ВАШ_IP`.
+Если ваш IP заблокирован, снять бан можно с консоли хостера:
+`sudo fail2ban-client set sshd unbanip ВАШ_IP`.
 
 **Firewall.** Порядок важен: сначала разрешить SSH, только потом включать.
 
@@ -273,11 +259,12 @@ sudo ufw --force enable
 
 Порт 80 нужен не только для сайта — без него certbot не выпустит сертификат.
 
-**Автообновления безопасности.** Пакет `unattended-upgrades` обычно уже стоит,
-осталось его включить:
+**Автообновления безопасности.** Проверьте, что установлены
+`unattended-upgrades` и параметры `APT::Periodic::Update-Package-Lists`
+и `APT::Periodic::Unattended-Upgrade` выставлены в `1`. Включите таймеры:
 
 ```bash
-sudo systemctl enable --now unattended-upgrades
+sudo systemctl enable --now apt-daily.timer apt-daily-upgrade.timer unattended-upgrades.service
 ```
 
 ## 7. Что сделать сразу после
@@ -364,7 +351,7 @@ sudo journalctl -u klever -n 50 --no-pager
 | Не входит в панель, «Слишком много попыток» | сработала защита от перебора, подождите 15 минут |
 | Фото не загружается, «Слишком большой запрос» | поднимите `client_max_body_size` в nginx |
 | Вход слетает при каждом переходе | нет `SECURE_COOKIES=1` при HTTPS или не передаётся `X-Forwarded-Proto` |
-| SSH не пускает даже с верным паролем | fail2ban забанил адрес — `fail2ban-client status sshd` |
+| SSH отклоняет ключ | Проверьте выбранный ключ командой `ssh -G Klever` и блокировки командой `fail2ban-client status sshd` через консоль хостера |
 | Сайт открывается локально, но не снаружи | порт закрыт в ufw — `ufw status` |
 
 ---
