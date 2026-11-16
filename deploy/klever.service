@@ -1,0 +1,28 @@
+[Unit]
+Description=Klever storefront
+After=network.target
+
+[Service]
+User=klever
+Group=klever
+WorkingDirectory=/var/www/klever
+Environment=HOST=127.0.0.1
+Environment=PORT=8080
+Environment=SECURE_COOKIES=1
+Environment=DB_PATH=/var/lib/klever/klever.db
+EnvironmentFile=-/etc/klever/klever.env
+StateDirectory=klever
+StateDirectoryMode=0750
+UMask=0027
+ExecStartPre=/usr/bin/test -s /var/lib/klever/klever.db
+ExecStart=/usr/bin/node /var/www/klever/server/server.js
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/www/klever/uploads
+
+[Install]
+WantedBy=multi-user.target
