@@ -27,30 +27,16 @@ function flatten(segments, steps) {
   return pts;
 }
 
-/* Сердце остриём в точке (0,0), телом вверх — тот же путь, что LEAF в ui.js:
-   M0 0 C-7 -11 -20 -16 -20 -26 C-20 -33 -11 -36 0 -28 C11 -36 20 -33 20 -26
-   C20 -16 7 -11 0 0 Z */
-var HEART = flatten([
-  [[0, 0], [-7, -11], [-20, -16], [-20, -26]],
-  [[-20, -26], [-20, -33], [-11, -36], [0, -28]],
-  [[0, -28], [11, -36], [20, -33], [20, -26]],
-  [[20, -26], [20, -16], [7, -11], [0, 0]]
+/* Контур листа и стебля из assets/favicon.svg. */
+var LEAF = flatten([
+  [[50, 70], [37, 57], [21, 49], [21, 34]],
+  [[21, 34], [21, 22], [35, 17], [50, 30]],
+  [[50, 30], [65, 17], [79, 22], [79, 34]],
+  [[79, 34], [79, 49], [63, 57], [50, 70]]
 ], 24);
 
-/* Четыре листа: тот же контур, повёрнутый вокруг общего острия в (50,46) */
-var LEAVES = [0, 90, 180, 270].map(function (deg, i) {
-  var rad = deg * Math.PI / 180, cos = Math.cos(rad), sin = Math.sin(rad);
-  return {
-    a: [0.8, 1, 1, 0.8][i],
-    poly: HEART.map(function (p) {
-      return [50 + p[0] * cos - p[1] * sin, 46 + p[0] * sin + p[1] * cos];
-    })
-  };
-});
-
-/* Стебель: кубическая кривая M50 72 c0 11 -3 20 -11 25 */
-var STEM = flatten([[[50, 72], [50, 83], [47, 92], [39, 97]]], 64);
-var STEM_R = 2.75;
+var STEM = [[50, 65]].concat(flatten([[[50, 65], [50, 77], [47, 85], [40, 90]]], 64));
+var STEM_R = 2;
 
 /* Точка внутри многоугольника: считаем пересечения луча вправо */
 function inPolygon(x, y, poly) {
@@ -95,10 +81,7 @@ function render(size) {
           bgHits++;
 
           var ux = fx * scale, uy = fy * scale;   /* координаты в системе 0..100 */
-          var cover = 0;
-          for (var i = 0; i < LEAVES.length; i++) {
-            if (inPolygon(ux, uy, LEAVES[i].poly)) cover = Math.max(cover, LEAVES[i].a);
-          }
+          var cover = inPolygon(ux, uy, LEAF) ? 1 : 0;
           if (cover < 1) {
             for (var k = 1; k < STEM.length; k++) {
               if (distToSegment(ux, uy, STEM[k - 1], STEM[k]) <= STEM_R) { cover = 1; break; }

@@ -298,7 +298,7 @@ function forPage(base, s, key) {
 function forHome(base, s) {
   var products = db.list('products');
   return {
-    title: s.siteName + ' — мастерская ' + String(s.tagline || '').replace(/^Мастерская\s+/i, ''),
+    title: s.siteName + (s.tagline ? ' — ' + s.tagline : ''),
     description: snippet((s.slogan ? s.slogan + '. ' : '') +
       'Платья, блузы, вязаное, палантины и сумки ручной работы из льна, хлопка и мериноса. ' +
       'Пошив по индивидуальным меркам. ' + (s.address || ''), 200),
