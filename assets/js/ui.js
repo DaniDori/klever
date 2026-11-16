@@ -2,20 +2,33 @@
 
 window.UI = (function () {
 
-  var LEAF = 'M50 70C37 57 21 49 21 34C21 22 35 17 50 30C65 17 79 22 79 34C79 49 63 57 50 70Z';
-  var STEM = 'M50 65C50 77 47 85 40 90';
+  /* ---------- Клевер-четырёхлистник ---------- */
 
-  function cloverPaths() {
-    return '<path d="' + STEM + '" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>' +
-      '<path d="' + LEAF + '" fill="currentColor"/>';
-  }
+  /* Четырёхлистник: четыре сердца остриями в центр — вверх, вправо, вниз,
+     влево — и стебель из-под нижнего. Лист описан один раз и разворачивается
+     поворотом: форма правится в одном месте, а все четыре листа заведомо
+     одинаковы. Соседние чуть разной плотности, будто свет падает слева
+     сверху, — иначе знак выглядит плоским пятном. Стебель идёт первым, до
+     листьев: поверх нижнего сердца тёмная черта смотрелась бы царапиной. */
+  var LEAF = 'M0 0C-7 -11-20 -16-20 -26C-20 -33-11 -36 0 -28C11 -36 20 -33 20 -26C20 -16 7 -11 0 0Z';
+  var STEM = 'M50 72c0 11-3 20-11 25';
 
   function cloverSVG(cls) {
-    return '<svg class="' + (cls || '') + '" viewBox="0 0 100 100" aria-hidden="true">' + cloverPaths() + '</svg>';
+    function leaf(deg, opacity) {
+      return '<path d="' + LEAF + '" fill="currentColor" opacity="' + opacity + '"' +
+        (deg ? ' transform="rotate(' + deg + ')"' : '') + '/>';
+    }
+    return '<svg class="' + (cls || '') + '" viewBox="0 0 100 100" fill="none" aria-hidden="true">' +
+      '<path d="' + STEM + '" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/>' +
+      '<g transform="translate(50 46)">' +
+        leaf(0, 0.72) + leaf(90, 0.9) + leaf(180, 0.9) + leaf(270, 0.72) +
+      '</g>' +
+      '</svg>';
   }
 
-  var CLOVER_MASK = 'url("data:image/svg+xml,' +
-    encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">' + cloverPaths() + '</svg>') + '")';
+  /* Та же фигура сплошным чёрным: этой маской вырезаются клеверные
+     значки в оформлении, ей важны очертания, а не полутона. */
+  var CLOVER_MASK = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 72c0 11-3 20-11 25' stroke='%23000' stroke-width='3.4' stroke-linecap='round' fill='none'/%3E%3Cg transform='translate(50 46)' fill='%23000'%3E%3Cpath d='M0 0C-7 -11-20 -16-20 -26C-20 -33-11 -36 0 -28C11 -36 20 -33 20 -26C20 -16 7 -11 0 0Z'/%3E%3Cpath d='M0 0C-7 -11-20 -16-20 -26C-20 -33-11 -36 0 -28C11 -36 20 -33 20 -26C20 -16 7 -11 0 0Z' transform='rotate(90)'/%3E%3Cpath d='M0 0C-7 -11-20 -16-20 -26C-20 -33-11 -36 0 -28C11 -36 20 -33 20 -26C20 -16 7 -11 0 0Z' transform='rotate(180)'/%3E%3Cpath d='M0 0C-7 -11-20 -16-20 -26C-20 -33-11 -36 0 -28C11 -36 20 -33 20 -26C20 -16 7 -11 0 0Z' transform='rotate(270)'/%3E%3C/g%3E%3C/svg%3E\")";
 
   var CARET = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238C8D82' stroke-width='1.2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E\")";
 
