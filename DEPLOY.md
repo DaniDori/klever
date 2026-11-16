@@ -9,12 +9,15 @@ VPS с Ubuntu 24.04 (подойдёт самый дешёвый: 1 ядро, 1 �
 ежедневные снимки в `/var/lib/klever/backups`, фотографии в
 `/var/www/klever/uploads`. При обновлении кода сохраняйте эти данные.
 
-До переноса данных работает [витрина по IP](deploy/nginx-preview.conf) с
-начальным каталогом. Через неё закрыты админка и приём заявок. Перед
-переключением домена восстановите базу и фотографии, проверьте каталог и
-админку. После настройки HTTPS уберите конфигурацию витрины по IP из
-`sites-enabled` и задайте фактический домен в `SITE_URL` через
-`/etc/klever/klever.env`.
+Сайт на `https://klever-ya.ru` использует [конфигурацию nginx](deploy/nginx-klever.conf)
+и `SITE_URL=https://klever-ya.ru` в `/etc/klever/klever.env`. Certbot
+проверяет домен через `/var/lib/letsencrypt`, а после продления сертификата
+[перечитывает конфигурацию nginx](deploy/certbot-reload-nginx). Проверка
+продления — `sudo certbot renew --dry-run`.
+
+До переноса данных витрина показывает начальный каталог. Временно закрыты
+индексация, публичная админка и приём заявок. Восстановите базу и фотографии,
+проверьте каталог и админку, затем снимите ограничения в конфигурации nginx.
 
 Шаги ниже показывают общий вариант установки с базой в папке проекта.
 
@@ -103,7 +106,7 @@ ExecStart=/usr/bin/node /var/www/klever/server/server.js
 Environment=PORT=8080
 Environment=HOST=127.0.0.1
 Environment=SECURE_COOKIES=1
-Environment=SITE_URL=https://klever.ru
+Environment=SITE_URL=https://klever-ya.ru
 Restart=always
 RestartSec=3
 
@@ -138,12 +141,12 @@ sudo systemctl daemon-reload && sudo systemctl enable --now klever && sudo syste
 sudo apt install -y nginx certbot python3-certbot-nginx
 ```
 
-Создайте `/etc/nginx/sites-available/klever` (замените `klever.ru` на свой домен):
+Создайте `/etc/nginx/sites-available/klever` (для другого проекта замените `klever-ya.ru` на свой домен):
 
 ```nginx
 server {
     listen 80;
-    server_name klever.ru www.klever.ru;
+    server_name klever-ya.ru www.klever-ya.ru;
 
     # Фотографии и статику отдаём напрямую — быстрее, чем через Node
     location /uploads/ { root /var/www/klever; expires 1y; add_header Cache-Control "public, immutable"; }
@@ -175,11 +178,11 @@ sudo ln -s /etc/nginx/sites-available/klever /etc/nginx/sites-enabled/ && sudo n
 ```
 
 ```bash
-sudo certbot --nginx -d klever.ru -d www.klever.ru
+sudo certbot --nginx -d klever-ya.ru -d www.klever-ya.ru
 ```
 
 Certbot сам перепишет конфиг под HTTPS и настроит продление. Откройте
-`https://klever.ru/` — сайт на месте.
+`https://klever-ya.ru/` — сайт на месте.
 
 ### Чужие домены
 
@@ -208,7 +211,7 @@ sudo ln -s /etc/nginx/sites-available/catch-all /etc/nginx/sites-enabled/ && sud
 оставляет в блоке на 80-м порту `return 404` — замените его на переезд к себе:
 
 ```nginx
-    return 301 https://klever.ru$request_uri;
+    return 301 https://klever-ya.ru$request_uri;
 ```
 
 Для поисковика это внятнее, чем 404: 301 говорит «это тот же сайт, вот его
@@ -221,7 +224,7 @@ sudo ln -s /etc/nginx/sites-available/catch-all /etc/nginx/sites-enabled/ && sud
 
 ```bash
 curl -s -o /dev/null -w '%{http_code}
-' https://klever.ru/
+' https://klever-ya.ru/
 ```
 
 ## 6. Защита сервера
@@ -280,7 +283,7 @@ sudo systemctl enable --now apt-daily.timer apt-daily-upgrade.timer unattended-u
 
 ## 7. Что сделать сразу после
 
-1. Зайдите в `https://klever.ru/admin.html`, смените пароль в «Настройках».
+1. Зайдите в `https://klever-ya.ru/admin.html`, смените пароль в «Настройках».
 2. В «Данных» нажмите «Выгрузить файл» и сохраните его у себя — это точка,
    к которой можно вернуться.
 3. Настройте почту о заказах («Настройки» → «Письма о заказах»), иначе
